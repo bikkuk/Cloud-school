@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cloud School of Thoughts</title>
+  <style>
+    /* Full-screen sky gradient */
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(to bottom, #a1cfff, #e0f2ff);
+      overflow: hidden;
+    }
+
+    /* Cloud container */
+    .cloud {
+      position: relative;
+      mix-blend-mode: lighten;
+      transition: width 1.8s ease-in-out, height 1.8s ease-in-out, margin 1.8s ease-in-out;
+    }
+
+    /* Fluff pieces */
+    .fluff {
+      position: absolute;
+      background: radial-gradient(circle at 50% 50%, #ffffff, #f0f4f8);
+      border-radius: 50%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      transition: width 1.8s ease-in-out, height 1.8s ease-in-out, left 1.8s ease-in-out, top 1.8s ease-in-out;
+    }
+
+    /* Text inside cloud */
+    .cloud-text {
+      position: absolute;
+      font-size: 2.5rem;
+      font-weight: bold;
+      pointer-events: none;
+      white-space: nowrap;
+      opacity: 0.8;
+      transition: left 1.8s ease-in-out, top 1.8s ease-in-out, color 1.8s ease-in-out, opacity 2.5s ease-in-out;
+    }
+
+    /* Fade in/out opacity */
+    @keyframes fade {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+  </style>
+</head>
+<body>
+  <div class="cloud" aria-label="Cloud">
+    <div class="fluff" id="fluff0"></div>
+    <div class="fluff" id="fluff1"></div>
+    <div class="fluff" id="fluff2"></div>
+    <div class="fluff" id="fluff3"></div>
+    <div class="fluff" id="fluff4"></div>
+    <div class="fluff" id="fluff5"></div>
+    <div class="cloud-text" id="cloudText">School of Thoughts</div>
+  </div>
+
+  <script>
+    // Utility for random integer
+    function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    // Randomize shape, text position, and text color
+    function randomizeCloud() {
+      const cloud = document.querySelector('.cloud');
+      const fluffs = Array.from(document.querySelectorAll('.fluff'));
+      const text = document.getElementById('cloudText');
+
+      // Cloud container random size
+      const cw = getRandomInt(500, 800);
+      const ch = getRandomInt(300, 500);
+      cloud.style.width = cw + 'px';
+      cloud.style.height = ch + 'px';
+      cloud.style.marginTop = -(ch/2) + 'px';
+      cloud.style.marginLeft = -(cw/2) + 'px';
+
+      // Randomize fluffs
+      fluffs.forEach(fluff => {
+        const fw = getRandomInt(150, 350);
+        const fh = getRandomInt(150, 350);
+        const fx = getRandomInt(-cw * 0.3, cw * 0.6);
+        const fy = getRandomInt(-ch * 0.4, ch * 0.4);
+        fluff.style.width = fw + 'px';
+        fluff.style.height = fh + 'px';
+        fluff.style.left = fx + 'px';
+        fluff.style.top = fy + 'px';
+      });
+
+      // Randomize text position within cloud bounds
+      const tx = getRandomInt(0, cw - text.offsetWidth);
+      const ty = getRandomInt(0, ch - text.offsetHeight);
+      text.style.left = tx + 'px';
+      text.style.top = ty + 'px';
+
+      // Randomize text color (smooth transition)
+      const hue = getRandomInt(0, 360);
+      text.style.color = `hsl(${hue}, 60%, 30%)`;
+    }
+
+    // Initial and interval
+    const text = document.getElementById('cloudText');
+    // Fade animation
+    text.style.animation = 'fade 5s infinite ease-in-out';
+    randomizeCloud();
+    setInterval(randomizeCloud, 2000);
+  </script>
+</body>
+</html>

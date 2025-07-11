@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Thought entries are stored in browser localStorage under key "thoughtJournal" -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cloud School of Thoughts</title>
+  <style>
+    /* Full-screen sky */
+    body {
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+      background: linear-gradient(to bottom, #a1cfff, #e0f2ff);
+      font-family: sans-serif;
+      position: relative;
+    }
+    /* Main cloud morphing, centered */
+    .cloud {
+      position: absolute;
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+      mix-blend-mode: lighten;
+      z-index: 1;
+      transition: width 2s ease-in-out, height 2s ease-in-out;
+    }
+    .fluff {
+      position: absolute;
+      background: radial-gradient(circle at center, #fff, #f0f4f8);
+      border-radius: 50%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      transition: width 2s ease-in-out, height 2s ease-in-out, left 2s ease-in-out, top 2s ease-in-out;
+    }
+    .cloud-text {
+      position: absolute;
+      font-size: 2.5rem; font-weight: bold;
+      pointer-events: none; white-space: nowrap;
+      opacity: 0.8;
+      transition: left 2s ease-in-out, top 2s ease-in-out, color 2s ease-in-out, opacity 2s ease-in-out;
+    }
+    /* User cloud for input and drift */
+    .user-cloud {
+      position: absolute;
+      background: radial-gradient(circle at center, #fff, #e0f4f8);
+      border-radius: 50px;
+      padding: 20px;
+      width: 200px; height: 80px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      color: #333; font-size: 1.2rem;
+      outline: none; cursor: text; white-space: pre-wrap;
+      transition: left 3s ease-in-out, top 3s ease-in-out, width 3s ease-in-out, height 3s ease-in-out, border-radius 3s ease-in-out;
+      z-index: 10;
+    }
+    /* Thought Journal PanelHidden for now */
+    .journal-panel { display: none; }
+  </style>
+</head>
+<body>
+  <div class="cloud" id="mainCloud">
+    <div class="fluff" id="fluff0"></div>
+    <div class="fluff" id="fluff1"></div>
+    <div class="fluff" id="fluff2"></div>
+    <div class="fluff" id="fluff3"></div>
+    <div class="fluff" id="fluff4"></div>
+    <div class="fluff" id="fluff5"></div>
+    <div class="cloud-text" id="cloudText">School of Thoughts</div>
+  </div>
+
+  <div class="journal-panel" id="journalPanel">
+    <h3>Thought Journal</h3>
+  </div>
+
+  <script>
+    /* Thought Journal stored in browser's localStorage under key "thoughtJournal" */
+    let thoughtJournal = JSON.parse(localStorage.getItem('thoughtJournal') || '[]');
+
+    function archiveEntry(cloud) {
+      const entry = {
+        id: Date.now().toString(),
+        text: cloud.innerText || '',
+        timestamp: new Date().toLocaleString(),
+        x: parseInt(cloud.style.left),
+        y: parseInt(cloud.style.top),
+        width: parseInt(cloud.style.width),
+        height: parseInt(cloud.style.height)
+      };
+      thoughtJournal.push(entry);
+      localStorage.setItem('thoughtJournal', JSON.stringify(thoughtJournal));
+    }
+
+    // Cloud morphing logic
+    function getRandomInt(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+    function randomizeCloud(){
+      const cloud=document.getElementById('mainCloud');
+      const fluffs=cloud.querySelectorAll('.fluff');
+      const text=document.getElementById('cloudText');
+      const cw=getRandomInt(500,800),ch=getRandomInt(300,500);
+      cloud.style.width=cw+'px';cloud.style.height=ch+'px';
+      fluffs.forEach(f=>{const fw=getRandomInt(150,350),fh=getRandomInt(150,350);f.style.width=fw+'px';f.style.height=fh+'px';f.style.left=getRandomInt(-cw*0.3,cw*0.6)+'px';f.style.top=getRandomInt(-ch*0.4,ch*0.4)+'px';});
+      const tx=getRandomInt(0,cloud.clientWidth-text.offsetWidth),ty=getRandomInt(0,cloud.clientHeight-text.offsetHeight);
+      text.style.left=tx+'px';text.style.top=ty+'px';text.style.color=`hsl(${getRandomInt(0,360)},70%,${getRandomInt(30,70)}%)`;text.style.opacity=0.3;setTimeout(()=>text.style.opacity=1,200);
+    }
+    randomizeCloud();setInterval(randomizeCloud,3000);
+
+    // Single user cloud with drift and morph, then archive
+    let activeCloud = null;
+    document.addEventListener('keydown', e => {
+      if (activeCloud || e.key.length !==1) return;
+      activeCloud=document.createElement('div');
+      activeCloud.className='user-cloud';
+      const x=window.innerWidth/2-100,y=window.innerHeight-150;
+      activeCloud.style.left=x+'px'; activeCloud.style.top=y+'px';
+      activeCloud.contentEditable='true'; activeCloud.innerText=e.key;
+      document.body.appendChild(activeCloud); activeCloud.focus();
+    });
+    document.addEventListener('click', ()=>{
+      if(!activeCloud) return;
+      activeCloud.contentEditable='false'; archiveEntry(activeCloud);
+      const uc=activeCloud; activeCloud=null;
+      setInterval(()=>{
+        uc.style.left=getRandomInt(0,window.innerWidth-uc.offsetWidth)+'px';
+        uc.style.top=getRandomInt(0,window.innerHeight-uc.offsetHeight)+'px';
+        uc.style.width=getRandomInt(150,300)+'px';
+        uc.style.height=getRandomInt(60,180)+'px';
+        uc.style.borderRadius=getRandomInt(30,100)+'px';
+      },3000);
+    });
+  </script>
+</body>
+</html>
