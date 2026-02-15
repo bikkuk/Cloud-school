@@ -22,7 +22,6 @@ class StudioOrchestrator:
     def generate_plan(self, project: str, model: str, brief: str, temperature: float, num_ctx: int) -> str:
         self.store.save_brief(project, brief)
         plan = self.planner.build_plan(model, brief, temperature, num_ctx)
-        self.store.save_plan(project, plan)
         self.store.append_prompt_history(project, {"type": "plan", "model": model, "brief": brief, "plan": plan})
         return plan
 
@@ -42,19 +41,14 @@ class StudioOrchestrator:
         run_dir = self.store.create_run_folder(project)
         outputs_dir = self.store.project_path(project) / "outputs"
 
-        self.store.save_plan(project, plan)
         (run_dir / "plan.md").write_text(plan, encoding="utf-8")
-
         approved, review_msg = self.reviewer.review(plan, locks)
         if not approved:
-            self.store.append_run_log(project, review_msg)
             (run_dir / "run_log.txt").write_text(review_msg, encoding="utf-8")
             return {"ok": False, "message": review_msg, "run_dir": run_dir.as_posix()}
 
         if self.stop_requested:
-            stop_msg = "Stopped by user."
-            self.store.append_run_log(project, stop_msg)
-            return {"ok": False, "message": stop_msg, "run_dir": run_dir.as_posix()}
+            return {"ok": False, "message": "Stopped by user.", "run_dir": run_dir.as_posix()}
 
         summary = self.builder.propose_changes(model, brief, plan, temperature, num_ctx)
         (run_dir / "changes_summary.md").write_text(summary, encoding="utf-8")
@@ -73,17 +67,10 @@ class StudioOrchestrator:
                 tofile="after/generated_output.md",
             )
             diff_text = "".join(diff)
-            self.store.save_changes_patch(project, diff_text)
             (run_dir / "changes.patch").write_text(diff_text, encoding="utf-8")
 
-        tests_exist = Path("tests").exists()
-        if tests_exist:
-            run_ok, runner_log = self.runner.run("python -m pytest", confirm_command)
-        else:
-            run_ok, runner_log = True, "No tests directory found. Runner skipped command execution."
-
+        run_ok, runner_log = self.runner.run("python -m pytest", confirm_command)
         log_text = f"Reviewer: {review_msg}\nBuilder: {write_msg}\nRunner ok={run_ok}\n\n{runner_log}"
-        self.store.append_run_log(project, log_text)
         (run_dir / "run_log.txt").write_text(log_text, encoding="utf-8")
 
         return {

@@ -20,12 +20,9 @@ class ProjectStore:
         (path / "agent_runs").mkdir(parents=True, exist_ok=True)
         (path / "outputs").mkdir(parents=True, exist_ok=True)
         (path / "attachments").mkdir(parents=True, exist_ok=True)
-
-        for file_name in ["project_brief.md", "plan.md", "run_log.txt", "changes.patch"]:
-            file_path = path / file_name
-            if not file_path.exists():
-                file_path.write_text("", encoding="utf-8")
-
+        brief_file = path / "project_brief.md"
+        if not brief_file.exists():
+            brief_file.write_text("", encoding="utf-8")
         history_file = path / "prompt_history.jsonl"
         history_file.touch(exist_ok=True)
         return path
@@ -37,18 +34,6 @@ class ProjectStore:
     def load_brief(self, project_name: str) -> str:
         project = self.ensure_project(project_name)
         return (project / "project_brief.md").read_text(encoding="utf-8")
-
-    def save_plan(self, project_name: str, plan_text: str) -> None:
-        project = self.ensure_project(project_name)
-        (project / "plan.md").write_text(plan_text, encoding="utf-8")
-
-    def append_run_log(self, project_name: str, log_text: str) -> None:
-        project = self.ensure_project(project_name)
-        (project / "run_log.txt").write_text(log_text, encoding="utf-8")
-
-    def save_changes_patch(self, project_name: str, patch_text: str) -> None:
-        project = self.ensure_project(project_name)
-        (project / "changes.patch").write_text(patch_text, encoding="utf-8")
 
     def append_prompt_history(self, project_name: str, payload: dict) -> None:
         project = self.ensure_project(project_name)
