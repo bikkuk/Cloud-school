@@ -10,7 +10,7 @@ No cloud APIs, no telemetry, and no internet needed after one-time setup.
   - Right: logs + files generated
   - Top: model, temperature, context preset, Ollama check
   - Bottom: status bar
-- Project folders under `studio_projects/<project_name>/` (including top-level `project_brief.md`, `plan.md`, `run_log.txt`, `changes.patch`, and `outputs/`)
+- Project folders under `studio_projects/<project_name>/`
 - Built-in agents: Planner, Builder, Reviewer, Runner
 - Reproducible run artifacts in `agent_runs/<timestamp>/`:
   - `plan.md`
@@ -35,14 +35,14 @@ No cloud APIs, no telemetry, and no internet needed after one-time setup.
 ## Start
 Double-click:
 ```bat
-start_studio.bat
+start.bat
 ```
 
 ## Existing AI for Seniors module
 This repo keeps the original web module intact.
 To run it directly:
 ```bat
-start.bat
+start_seniors.bat
 ```
 
 ## Notes / limitations
