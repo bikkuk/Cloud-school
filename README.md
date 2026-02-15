@@ -1,26 +1,26 @@
-# AI for Seniors (Offline + Local + USB Ready)
+# AI for Seniors (Offline + Local)
 
-This project now runs as a **desktop GUI wrapper** on Windows (no browser required).
+This module runs fully offline after one-time setup.
 
-## Features
-- Native desktop interface (Tkinter) with large text + high contrast
-- Language selector (English, Español, Français, Deutsch, Português, العربية, हिन्दी, 中文)
-- 8 lessons in `/lessons`
-- Local Ollama integration (`http://127.0.0.1:11434`, model `qwen2.5:7b`)
-- Two local LLM modes:
-  - **Teacher mode** (Q&A)
-  - **AI Video Anchor mode** (anchor-style script + local voice playback)
-- Strict safety scope:
-  - Only AI basics, AI safety, privacy, scams, misinformation, and risks
-  - Refuses medical/legal/financial advice
-  - Refuses harmful/illegal instructions
-  - Redirects out-of-scope questions to lessons
-  - Never asks learners to go online
+## What it includes
+- Local web app with large text and high contrast
+- 8 beginner-friendly lessons in `/lessons`
+- Local assistant restricted to:
+  - AI basics
+  - AI safety
+  - privacy
+  - scams
+  - risks
+- Safety guardrails that refuse:
+  - medical advice
+  - legal advice
+  - financial advice
+  - harmful or illegal instructions
 
-## Windows requirements
-1. Python 3.10+ (with Tkinter included)
+## Requirements (Windows)
+1. Python 3.10+
 2. Ollama installed
-3. Local model downloaded once: `qwen2.5:7b`
+3. Local model: `qwen2.5:7b`
 
 ## One-time install
 1. Open Command Prompt in this project folder.
@@ -28,31 +28,28 @@ This project now runs as a **desktop GUI wrapper** on Windows (no browser requir
    ```bat
    install.bat
    ```
-3. If prompted, run once (internet only for this first model download):
+3. If prompted, run once:
    ```bat
    ollama pull qwen2.5:7b
    ```
 
-After model download, day-to-day use is fully offline.
+After model download, normal use is fully offline.
 
-## Start the app (desktop GUI)
-1. Run:
+## Start the app
+1. Make sure Ollama is running.
+2. Run:
    ```bat
    start.bat
    ```
-2. The desktop GUI opens directly (no browser tab).
-
-## How seniors use it
-- Left: choose lessons
-- Center: read lesson content and print it
-- Right: choose language, ask questions, and use helper buttons
-- AI Video Anchor: generate presenter script and play local voice
+3. Browser opens at `http://127.0.0.1:5000`.
 
 ## Project structure
-- `/lessons` - lesson markdown files
-- `/server/core.py` - shared guardrails + Ollama logic
-- `/server/desktop_app.py` - desktop GUI wrapper
-- `/server/app.py` - optional local web API/UI compatibility
-- `/web` - optional browser UI (not required for normal desktop use)
-- `install.bat` - setup checks + `.venv` + dependency install
-- `start.bat` - launches desktop GUI and ensures Ollama service
+- `/lessons` - 8 markdown lesson files
+- `/server` - Flask backend and Ollama integration
+- `/web` - local browser UI
+- `install.bat` - setup checks and dependency install
+- `start.bat` - launches local app
+
+## Notes
+- The assistant never asks the learner to go online.
+- Out-of-scope questions are refused and redirected to lessons.
