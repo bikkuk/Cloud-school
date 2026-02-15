@@ -32,23 +32,17 @@ class AgentStudioApp(tk.Tk):
         self.function_lock = tk.BooleanVar(value=False)
         self.page_lock = tk.BooleanVar(value=False)
 
-        self.use_memory_var = tk.BooleanVar(value=True)
-        self.memory_depth_var = tk.IntVar(value=3)
-
-        self.model_combo = None
         self._build_layout()
         self._refresh_projects()
         self._load_project_brief()
         self._refresh_project_files()
-        self.refresh_model_list(show_message=False)
 
     def _build_layout(self):
         top = ttk.Frame(self, padding=8)
         top.pack(fill="x")
         ttk.Label(top, text="Model:").pack(side="left")
-        self.model_combo = ttk.Combobox(top, textvariable=self.model_var, values=self.config_data.get("models", []), width=30)
-        self.model_combo.pack(side="left", padx=6)
-        ttk.Button(top, text="Check Ollama / Refresh Models", command=self.check_ollama).pack(side="left", padx=6)
+        ttk.Combobox(top, textvariable=self.model_var, values=self.config_data.get("models", []), width=22).pack(side="left", padx=6)
+        ttk.Button(top, text="Check Ollama", command=self.check_ollama).pack(side="left", padx=6)
         ttk.Label(top, text="Temperature:").pack(side="left", padx=(18, 0))
         ttk.Scale(top, from_=0.0, to=1.0, variable=self.temp_var, orient="horizontal", length=140).pack(side="left", padx=6)
         ttk.Label(top, text="Context:").pack(side="left", padx=(18, 0))
@@ -88,12 +82,6 @@ class AgentStudioApp(tk.Tk):
         ttk.Checkbutton(lock_bar, text="UX lock", variable=self.ux_lock).pack(side="left")
         ttk.Checkbutton(lock_bar, text="Function lock", variable=self.function_lock).pack(side="left", padx=8)
         ttk.Checkbutton(lock_bar, text="Page lock", variable=self.page_lock).pack(side="left")
-
-        memory_bar = ttk.Frame(center)
-        memory_bar.pack(fill="x", pady=(2, 6))
-        ttk.Checkbutton(memory_bar, text="Use project memory", variable=self.use_memory_var).pack(side="left")
-        ttk.Label(memory_bar, text="Memory depth:").pack(side="left", padx=(10, 4))
-        ttk.Spinbox(memory_bar, from_=1, to=10, textvariable=self.memory_depth_var, width=5).pack(side="left")
 
         ttk.Label(center, text="Plan Preview").pack(anchor="w")
         self.plan_text = tk.Text(center, wrap="word", height=10)
@@ -144,24 +132,6 @@ class AgentStudioApp(tk.Tk):
         self.log_text.insert("end", msg + "\n")
         self.log_text.see("end")
 
-    def refresh_model_list(self, show_message: bool = True):
-        try:
-            live_models = self.llm.list_models()
-        except Exception as exc:
-            if show_message:
-                messagebox.showwarning("Model list", f"Could not fetch models from Ollama. Using config defaults.\n\n{exc}")
-            live_models = self.config_data.get("models", [])
-
-        if not live_models:
-            live_models = self.config_data.get("models", [])
-
-        self.model_combo["values"] = live_models
-        if self.model_var.get() not in live_models and live_models:
-            self.model_var.set(live_models[0])
-
-        if show_message:
-            messagebox.showinfo("Model list", f"Loaded {len(live_models)} model(s):\n" + "\n".join(live_models))
-
     def create_project(self):
         name = simpledialog.askstring("New Project", "Project name:")
         if not name:
@@ -195,23 +165,11 @@ class AgentStudioApp(tk.Tk):
         if not ok:
             messagebox.showerror("Ollama Check", msg)
             return
-
-        self.refresh_model_list(show_message=False)
-        selected = self.model_var.get()
-        model_ok, model_msg = self.llm.model_exists(selected)
-        available = list(self.model_combo["values"])
-        model_list_text = "\n".join(available[:20]) if available else "No models reported."
-        status = "\n".join([
-            msg,
-            model_msg,
-            "",
-            f"Available models ({len(available)}):",
-            model_list_text,
-        ])
+        model_ok, model_msg = self.llm.model_exists(self.model_var.get())
         if model_ok:
-            messagebox.showinfo("Ollama Check", status)
+            messagebox.showinfo("Ollama Check", f"{msg}\n{model_msg}")
         else:
-            messagebox.showwarning("Ollama Check", status)
+            messagebox.showwarning("Ollama Check", f"{msg}\n{model_msg}")
 
     def generate_plan(self):
         project = self.current_project.get()
@@ -219,15 +177,7 @@ class AgentStudioApp(tk.Tk):
         self.store.save_brief(project, brief)
         self.status_var.set("Running: Generating plan...")
         try:
-            plan = self.orchestrator.generate_plan(
-                project,
-                self.model_var.get(),
-                brief,
-                self.temp_var.get(),
-                self._ctx_value(),
-                use_memory=self.use_memory_var.get(),
-                memory_depth=self.memory_depth_var.get(),
-            )
+            plan = self.orchestrator.generate_plan(project, self.model_var.get(), brief, self.temp_var.get(), self._ctx_value())
             self.plan_text.delete("1.0", "end")
             self.plan_text.insert("1.0", plan)
             self._append_log("Plan generated.")
@@ -270,15 +220,8 @@ class AgentStudioApp(tk.Tk):
                     locks=self._locks(),
                     confirm_overwrite=self._confirm_overwrite,
                     confirm_command=self._confirm_command,
-                    use_memory=self.use_memory_var.get(),
-                    memory_depth=self.memory_depth_var.get(),
                 )
                 self._append_log(result.get("message", "Run done."))
-                written = result.get("written_files", [])
-                if written:
-                    self._append_log("Generated product files:")
-                    for item in written:
-                        self._append_log(f" - outputs/{item}")
                 self._append_log(f"Run folder: {result.get('run_dir', '')}")
                 self.status_var.set("Idle" if result.get("ok") else "Error")
                 self._refresh_project_files()

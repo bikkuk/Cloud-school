@@ -9,15 +9,9 @@
     " del ",
     " del/s",
     "format",
-    "diskpart",
     "reg add",
     "reg delete",
     "shutdown",
-    "rmdir /s",
-    "curl ",
-    "wget ",
-    "invoke-webrequest",
-    "http://",
-    "https://"
+    "rmdir /s"
   ]
 }
