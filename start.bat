@@ -1,8 +1,14 @@
 @echo off
 setlocal
 
-echo Starting AI for Seniors local server...
-start "" http://127.0.0.1:5000
-python server\app.py
+echo Starting AI Agent Studio...
+
+if not exist .venv\Scripts\activate.bat (
+  echo [ERROR] Missing virtual environment. Run install.bat first.
+  exit /b 1
+)
+
+call .venv\Scripts\activate.bat
+python agent_studio\app.py
 
 endlocal
