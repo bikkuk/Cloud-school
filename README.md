@@ -53,3 +53,22 @@ After model download, normal use is fully offline.
 ## Notes
 - The assistant never asks the learner to go online.
 - Out-of-scope questions are refused and redirected to lessons.
+
+---
+
+## AI Agent Studio (Desktop)
+
+A new local-first desktop Studio is available under `agent_studio/`.
+
+### Start Studio
+```bat
+start_studio.bat
+```
+
+### Studio highlights
+- Tkinter desktop UI (no Electron, no cloud APIs)
+- Exactly 4 internal agents: Planner, Reviewer, Builder, Runner
+- Ollama local integration via `http://127.0.0.1:11434`
+- Project-scoped artifacts stored under `studio_projects/<project>/`
+
+For detailed setup and usage, see `README_STUDIO.md`.
