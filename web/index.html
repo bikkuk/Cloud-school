@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI for Seniors (Offline)</title>
+  <style>
+    :root {
+      --bg: #000;
+      --panel: #111;
+      --text: #fff;
+      --accent: #ffd400;
+      --border: #444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 21px;
+      line-height: 1.45;
+    }
+    h1, h2 { color: var(--accent); }
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 2fr 1.4fr;
+      min-height: 100vh;
+      gap: 10px;
+      padding: 10px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      overflow: auto;
+    }
+    button {
+      width: 100%;
+      margin: 6px 0;
+      font-size: 20px;
+      padding: 12px;
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      color: #000;
+      font-weight: bold;
+    }
+    textarea {
+      width: 100%;
+      min-height: 130px;
+      font-size: 20px;
+      padding: 10px;
+      border-radius: 10px;
+      border: 2px solid #888;
+      background: #fff;
+      color: #000;
+    }
+    #lesson-content {
+      white-space: pre-wrap;
+    }
+    .small-btn {
+      font-size: 18px;
+      padding: 10px;
+    }
+    .answer {
+      margin-top: 12px;
+      background: #1f1f1f;
+      border-left: 5px solid var(--accent);
+      padding: 10px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <section class="panel">
+      <h2>Lessons</h2>
+      <div id="lesson-list"></div>
+    </section>
+
+    <section class="panel">
+      <h1>AI for Seniors</h1>
+      <button onclick="window.print()">Print lesson</button>
+      <div id="lesson-content">Select a lesson from the left.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Ask a question</h2>
+      <textarea id="question" placeholder="Ask about AI basics, safety, privacy, scams, or risks..."></textarea>
+      <button onclick="askQuestion()">Ask</button>
+      <button class="small-btn" onclick="appendPrompt('Explain simpler')">Explain simpler</button>
+      <button class="small-btn" onclick="appendPrompt('Give an example')">Give an example</button>
+      <button class="small-btn" onclick="appendPrompt('Common mistake')">Common mistake</button>
+      <button class="small-btn" onclick="appendPrompt('Safety tip')">Safety tip</button>
+      <div id="answer" class="answer">Your answer will appear here.</div>
+    </section>
+  </div>
+
+  <script>
+    const lessonList = document.getElementById('lesson-list');
+    const lessonContent = document.getElementById('lesson-content');
+    const answerBox = document.getElementById('answer');
+
+    async function loadLessons() {
+      const res = await fetch('/api/lessons');
+      const data = await res.json();
+      lessonList.innerHTML = '';
+      data.lessons.forEach((lesson) => {
+        const btn = document.createElement('button');
+        btn.textContent = lesson.replace('.md', '').replaceAll('-', ' ');
+        btn.onclick = () => openLesson(lesson);
+        lessonList.appendChild(btn);
+      });
+    }
+
+    async function openLesson(name) {
+      const res = await fetch(`/api/lessons/${encodeURIComponent(name)}`);
+      lessonContent.textContent = await res.text();
+    }
+
+    function appendPrompt(text) {
+      const box = document.getElementById('question');
+      box.value = box.value.trim() ? `${box.value.trim()}\n${text}` : text;
+      box.focus();
+    }
+
+    async function askQuestion() {
+      const question = document.getElementById('question').value.trim();
+      if (!question) {
+        answerBox.textContent = 'Please type a question first.';
+        return;
+      }
+      answerBox.textContent = 'Thinking...';
+      const res = await fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      });
+      const data = await res.json();
+      answerBox.textContent = data.answer;
+    }
+
+    loadLessons();
+  </script>
+</body>
+</html>
