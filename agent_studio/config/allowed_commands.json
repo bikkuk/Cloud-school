@@ -1,0 +1,17 @@
+{
+  "allowed_commands": [
+    "python -m pip install -r requirements.txt",
+    "python -m pytest",
+    "python"
+  ],
+  "blocked_tokens": [
+    " rm ",
+    " del ",
+    " del/s",
+    "format",
+    "reg add",
+    "reg delete",
+    "shutdown",
+    "rmdir /s"
+  ]
+}
