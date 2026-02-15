@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI for Seniors (Offline)</title>
+  <style>
+    :root { --bg:#000; --panel:#111; --text:#fff; --accent:#ffd400; --border:#444; --good:#73f59b; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:Arial,sans-serif; background:var(--bg); color:var(--text); font-size:21px; line-height:1.45; }
+    h1,h2,h3 { color:var(--accent); margin-top:0; }
+    .layout { display:grid; grid-template-columns:1fr 1.8fr 1.5fr; min-height:100vh; gap:10px; padding:10px; }
+    .panel { background:var(--panel); border:2px solid var(--border); border-radius:12px; padding:14px; overflow:auto; }
+    button, select { width:100%; margin:6px 0; font-size:20px; padding:12px; background:var(--accent); border:none; border-radius:10px; color:#000; font-weight:bold; }
+    textarea { width:100%; min-height:110px; font-size:20px; padding:10px; border-radius:10px; border:2px solid #888; background:#fff; color:#000; }
+    #lesson-content,.answer,#anchor-script { white-space:pre-wrap; }
+    .small-btn { font-size:18px; padding:10px; }
+    .answer,#anchor-script { margin-top:12px; background:#1f1f1f; border-left:5px solid var(--accent); padding:10px; border-radius:8px; }
+    .status { font-size:18px; color:var(--good); margin-bottom:8px; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <section class="panel">
+      <h2>Lessons</h2>
+      <div id="health" class="status">Checking local Ollama...</div>
+      <div id="lesson-list"></div>
+    </section>
+
+    <section class="panel">
+      <h1>AI for Seniors (Offline USB Edition)</h1>
+      <button onclick="window.print()">Print lesson</button>
+      <div id="lesson-content">Select a lesson from the left.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Ask a question</h2>
+      <label for="language">Language</label>
+      <select id="language"></select>
+      <textarea id="question" placeholder="Ask about AI basics, safety, privacy, scams, or risks..."></textarea>
+      <button onclick="askQuestion()">Ask</button>
+      <button class="small-btn" onclick="appendPrompt('Explain simpler')">Explain simpler</button>
+      <button class="small-btn" onclick="appendPrompt('Give an example')">Give an example</button>
+      <button class="small-btn" onclick="appendPrompt('Common mistake')">Common mistake</button>
+      <button class="small-btn" onclick="appendPrompt('Safety tip')">Safety tip</button>
+      <div id="answer" class="answer">Your answer will appear here.</div>
+
+      <h3>AI Video Anchor</h3>
+      <button onclick="runAnchor()">Generate anchor script</button>
+      <button class="small-btn" onclick="speakAnchor()">Play anchor voice</button>
+      <div id="anchor-script">Anchor script will appear here.</div>
+    </section>
+  </div>
+
+  <script>
+    const lessonList = document.getElementById('lesson-list');
+    const lessonContent = document.getElementById('lesson-content');
+    const answerBox = document.getElementById('answer');
+    const anchorBox = document.getElementById('anchor-script');
+    const healthEl = document.getElementById('health');
+    const languageEl = document.getElementById('language');
+
+    async function checkHealth() {
+      try {
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        if (data.ollama === 'ok' && data.model_ready) healthEl.textContent = `Ollama ready: ${data.model}`;
+        else if (data.ollama === 'ok') healthEl.textContent = `Ollama online. Missing model: ${data.model}`;
+        else healthEl.textContent = 'Ollama is not reachable. Start Ollama locally.';
+      } catch (e) { healthEl.textContent = 'Could not check Ollama health.'; }
+    }
+
+    async function loadLanguages() {
+      try {
+        const res = await fetch('/api/languages');
+        const data = await res.json();
+        languageEl.innerHTML = '';
+        data.languages.forEach((lang) => {
+          const opt = document.createElement('option');
+          opt.value = lang;
+          opt.textContent = lang;
+          languageEl.appendChild(opt);
+        });
+        languageEl.value = 'English';
+      } catch (e) {
+        ['English','Español','Français','Deutsch','Português','العربية','हिन्दी','中文'].forEach((lang) => {
+          const opt = document.createElement('option');
+          opt.value = lang;
+          opt.textContent = lang;
+          languageEl.appendChild(opt);
+        });
+      }
+    }
+
+    async function loadLessons() {
+      const res = await fetch('/api/lessons');
+      const data = await res.json();
+      lessonList.innerHTML = '';
+      data.lessons.forEach((lesson) => {
+        const btn = document.createElement('button');
+        btn.textContent = lesson.replace('.md', '').replaceAll('-', ' ');
+        btn.onclick = () => openLesson(lesson);
+        lessonList.appendChild(btn);
+      });
+    }
+
+    async function openLesson(name) {
+      const res = await fetch(`/api/lessons/${encodeURIComponent(name)}`);
+      lessonContent.textContent = await res.text();
+    }
+
+    function appendPrompt(text) {
+      const box = document.getElementById('question');
+      box.value = box.value.trim() ? `${box.value.trim()}\n${text}` : text;
+      box.focus();
+    }
+
+    async function askQuestion() {
+      const question = document.getElementById('question').value.trim();
+      if (!question) { answerBox.textContent = 'Please type a question first.'; return; }
+      answerBox.textContent = 'Thinking...';
+      const res = await fetch('/api/ask', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ question, language: languageEl.value })
+      });
+      const data = await res.json();
+      answerBox.textContent = data.answer;
+    }
+
+    async function runAnchor() {
+      const topic = document.getElementById('question').value.trim();
+      if (!topic) { anchorBox.textContent = 'Type a topic above, then generate anchor script.'; return; }
+      anchorBox.textContent = 'Creating anchor script...';
+      const res = await fetch('/api/anchor', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ topic, language: languageEl.value })
+      });
+      const data = await res.json();
+      anchorBox.textContent = data.script;
+    }
+
+    function speakAnchor() {
+      const text = anchorBox.textContent.trim();
+      if (!text || text.includes('will appear here')) return;
+      if (!('speechSynthesis' in window)) {
+        anchorBox.textContent += '\n\n(Voice playback not supported in this browser.)';
+        return;
+      }
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.9;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    }
+
+    checkHealth();
+    loadLanguages();
+    loadLessons();
+  </script>
+</body>
+</html>
