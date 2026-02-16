@@ -17,9 +17,24 @@ class ProjectStore:
 
     def ensure_project(self, project_name: str) -> Path:
         path = self.project_path(project_name)
-        (path / "agent_runs").mkdir(parents=True, exist_ok=True)
+
+        # Required local project layout
+        (path / ".agentstudio" / "tasks").mkdir(parents=True, exist_ok=True)
+        (path / ".agentstudio" / "plans").mkdir(parents=True, exist_ok=True)
+        (path / ".agentstudio" / "locks").mkdir(parents=True, exist_ok=True)
+        (path / ".agentstudio" / "patches").mkdir(parents=True, exist_ok=True)
+        (path / ".agentstudio" / "reports").mkdir(parents=True, exist_ok=True)
+        (path / ".agentstudio" / "logs").mkdir(parents=True, exist_ok=True)
+        (path / ".agentstudio" / "decisions").mkdir(parents=True, exist_ok=True)
+        (path / ".agentstudio" / "releases").mkdir(parents=True, exist_ok=True)
+
+        (path / "src").mkdir(parents=True, exist_ok=True)
+        (path / "tests").mkdir(parents=True, exist_ok=True)
+        (path / "docs").mkdir(parents=True, exist_ok=True)
         (path / "outputs").mkdir(parents=True, exist_ok=True)
         (path / "attachments").mkdir(parents=True, exist_ok=True)
+        (path / "agent_runs").mkdir(parents=True, exist_ok=True)
+
         brief_file = path / "project_brief.md"
         if not brief_file.exists():
             brief_file.write_text("", encoding="utf-8")

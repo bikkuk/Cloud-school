@@ -12,9 +12,9 @@ from agent_studio.storage.project_store import ProjectStore
 class AgentStudioApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("AI Agent Studio")
-        self.geometry("1300x780")
-        self.minsize(1100, 680)
+        self.title("Agent Studio Desktop (No Browser)")
+        self.geometry("1420x860")
+        self.minsize(1200, 720)
 
         self.config_data = json.loads(Path("agent_studio/config/studio_config.json").read_text(encoding="utf-8"))
         self.store = ProjectStore("studio_projects")
@@ -62,7 +62,7 @@ class AgentStudioApp(tk.Tk):
         self.project_list.bind("<<ListboxSelect>>", self.select_project)
         ttk.Label(left, text="Agents").pack(anchor="w", pady=(8, 2))
         self.agent_list = tk.Listbox(left, height=6)
-        for agent in ["PlannerAgent", "BuilderAgent", "ReviewerAgent", "RunnerAgent"]:
+        for agent in ["PlannerAgent", "BuilderAgent", "ReviewerAgent", "RunnerAgent", "Packager"]:
             self.agent_list.insert("end", agent)
         self.agent_list.pack(fill="x")
         ttk.Button(left, text="Attach File", command=self.attach_file).pack(fill="x", pady=(10, 0))
@@ -92,6 +92,11 @@ class AgentStudioApp(tk.Tk):
         ttk.Label(right, text="Logs").pack(anchor="w")
         self.log_text = tk.Text(right, wrap="word", height=14)
         self.log_text.pack(fill="both", expand=True)
+        ttk.Label(right, text="Gate Status").pack(anchor="w", pady=(8, 2))
+        self.gate_text = tk.Text(right, wrap="word", height=8)
+        self.gate_text.pack(fill="x")
+        self.gate_text.insert("1.0", "Run pipeline to see gate results.")
+
         ttk.Label(right, text="Project Files").pack(anchor="w", pady=(8, 2))
         self.files_list = tk.Listbox(right, height=10)
         self.files_list.pack(fill="both", expand=True)
@@ -131,6 +136,17 @@ class AgentStudioApp(tk.Tk):
     def _append_log(self, msg: str):
         self.log_text.insert("end", msg + "\n")
         self.log_text.see("end")
+
+    def _render_gates(self, gates: dict):
+        self.gate_text.delete("1.0", "end")
+        if not gates:
+            self.gate_text.insert("1.0", "No gate data.")
+            return
+        lines = []
+        for gate, info in gates.items():
+            icon = "PASS" if info.get("pass") else "FAIL"
+            lines.append(f"{gate}: {icon} - {info.get('reason', '')}")
+        self.gate_text.insert("1.0", "\n".join(lines))
 
     def create_project(self):
         name = simpledialog.askstring("New Project", "Project name:")
@@ -223,6 +239,7 @@ class AgentStudioApp(tk.Tk):
                 )
                 self._append_log(result.get("message", "Run done."))
                 self._append_log(f"Run folder: {result.get('run_dir', '')}")
+                self._render_gates(result.get("gates", {}))
                 self.status_var.set("Idle" if result.get("ok") else "Error")
                 self._refresh_project_files()
             except Exception as exc:
