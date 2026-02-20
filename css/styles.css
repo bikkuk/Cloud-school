@@ -1,17 +1,17 @@
 :root {
-  --bg: #f7f9ff;
-  --text: #1a2340;
-  --muted: #5b6685;
+  --bg: #f8fbff;
+  --text: #13233a;
+  --muted: #5f7188;
   --card: #ffffff;
   --border: #e7edf7;
   --shadow: 0 14px 35px rgba(31, 54, 80, 0.09);
   --shadow-hover: 0 22px 45px rgba(31, 54, 80, 0.16);
   --radius-xl: 24px;
   --radius-pill: 999px;
-  --grad-main: linear-gradient(110deg, #37b8d6, #37d6c1);
+  --grad-main: linear-gradient(110deg, #ff73c3, #53d9ff);
   --accent-soft: #edf6ff;
   --success: #0ca678;
-  --warn: #e8fbf8;
+  --warn: #ffe9ef;
   --space: clamp(1rem, 1.5vw, 1.4rem);
 }
 
@@ -44,10 +44,10 @@ body::before {
   z-index: -2;
   animation: float 22s ease-in-out infinite;
 }
-.blob.a { left: -8%; top: -8%; background: radial-gradient(circle, #c9f1ff 0%, #e6f8ff 45%, transparent 70%); }
-.blob.b { right: -8%; top: 12%; background: radial-gradient(circle, #b9f0ea 0%, #d7faf6 45%, transparent 70%); animation-delay: -6s; }
-.blob.c { left: 14%; bottom: -15%; background: radial-gradient(circle, #dff1ff 0%, #eef7ff 45%, transparent 70%); animation-delay: -12s; }
-.blob.d { right: -10%; bottom: -20%; background: radial-gradient(circle, #d8f4ef 0%, #ecfbf8 45%, transparent 70%); animation-delay: -18s; }
+.blob.a { left: -8%; top: -8%; background: radial-gradient(circle, #ffc0df 0%, #ffd3ec 45%, transparent 70%); }
+.blob.b { right: -8%; top: 12%; background: radial-gradient(circle, #bcecff 0%, #d6f3ff 45%, transparent 70%); animation-delay: -6s; }
+.blob.c { left: 14%; bottom: -15%; background: radial-gradient(circle, #d5ffe7 0%, #ecfff5 45%, transparent 70%); animation-delay: -12s; }
+.blob.d { right: -10%; bottom: -20%; background: radial-gradient(circle, #efe1ff 0%, #f6eaff 45%, transparent 70%); animation-delay: -18s; }
 @keyframes float { 50% { transform: translateY(-18px) translateX(16px);} }
 
 .container { width: min(1120px, 92vw); margin-inline: auto; }
@@ -129,7 +129,7 @@ h2 { font-size: clamp(1.55rem, 3vw, 2.1rem); margin: 0 0 1rem; }
 .lead { color: var(--muted); max-width: 75ch; margin-bottom: 1.1rem; }
 .warn-box {
   background: var(--warn);
-  border: 1px solid #bfeee7;
+  border: 1px solid #ffd0df;
   border-radius: 18px;
   padding: .9rem 1rem;
   font-weight: 600;
@@ -188,16 +188,16 @@ h2 { font-size: clamp(1.55rem, 3vw, 2.1rem); margin: 0 0 1rem; }
   border-color: #c4dbf7;
   box-shadow: var(--shadow-hover);
 }
- .badge {
+.badge {
   display:inline-flex;
-  background: #e8ecff;
-  color: #2b4f8f;
+  background: #fce7f2;
+  color: #922667;
   padding: .28rem .6rem;
   border-radius: 999px;
   font-size: .74rem;
   font-weight: 700;
 }
-.badge.alt { background:#ddf7f3; color:#226f67; }
+.badge.alt { background:#e6f4ff; color:#1c568d; }
 .card h3 { margin:.45rem 0 .28rem; font-size:1.2rem; }
 .price { font-weight: 800; font-size: 1.2rem; margin-bottom:.35rem; }
 ul.clean { margin: .5rem 0 1rem; padding-left: 1.1rem; }
@@ -205,8 +205,8 @@ ul.clean { margin: .5rem 0 1rem; padding-left: 1.1rem; }
   margin-top: 1rem;
   padding: 1rem 1.1rem;
   border-radius: 18px;
-  border: 1px solid #bfeee7;
-  background: #eefcf9;
+  border: 1px solid #ffd2df;
+  background: #fff3f7;
   font-weight: 600;
 }
 
@@ -266,7 +266,7 @@ label { font-weight: 600; font-size: .93rem; }
   z-index: 17;
   max-width: 330px;
   background:#fff;
-  border:1px solid #bfeee7;
+  border:1px solid #ffd1de;
   border-radius: 16px;
   padding: .75rem;
   box-shadow: var(--shadow);
@@ -292,23 +292,6 @@ label { font-weight: 600; font-size: .93rem; }
 .close-btn{ border:none; background:#eff4fb; border-radius:999px; width:32px; height:32px; cursor:pointer; }
 
 .confetti-canvas { position: fixed; inset: 0; pointer-events:none; z-index: 25; }
-
-
-.consent-banner {
-  position: fixed;
-  left: 1rem;
-  right: 1rem;
-  bottom: 1rem;
-  z-index: 32;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  box-shadow: var(--shadow-hover);
-  padding: .9rem 1rem;
-  max-width: 860px;
-  margin: 0 auto;
-}
-.consent-banner p { margin: 0 0 .65rem; color: var(--text); }
 
 @media (max-width: 800px) {
   .nav-links { order: 3; width:100%; overflow:auto; }
