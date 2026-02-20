@@ -1,14 +1,14 @@
 :root {
-  --bg: #f7f9ff;
-  --text: #1a2340;
-  --muted: #5b6685;
+  --bg: #f8fbff;
+  --text: #13233a;
+  --muted: #5f7188;
   --card: #ffffff;
   --border: #e7edf7;
   --shadow: 0 14px 35px rgba(31, 54, 80, 0.09);
   --shadow-hover: 0 22px 45px rgba(31, 54, 80, 0.16);
   --radius-xl: 24px;
   --radius-pill: 999px;
-  --grad-main: linear-gradient(110deg, #7b8bff, #4fd1c5);
+  --grad-main: linear-gradient(110deg, #ff73c3, #53d9ff);
   --accent-soft: #edf6ff;
   --success: #0ca678;
   --warn: #ffe9ef;
@@ -44,10 +44,10 @@ body::before {
   z-index: -2;
   animation: float 22s ease-in-out infinite;
 }
-.blob.a { left: -8%; top: -8%; background: radial-gradient(circle, #d8dcff 0%, #eceeff 45%, transparent 70%); }
-.blob.b { right: -8%; top: 12%; background: radial-gradient(circle, #b9f0ea 0%, #d7faf6 45%, transparent 70%); animation-delay: -6s; }
-.blob.c { left: 14%; bottom: -15%; background: radial-gradient(circle, #dff1ff 0%, #eef7ff 45%, transparent 70%); animation-delay: -12s; }
-.blob.d { right: -10%; bottom: -20%; background: radial-gradient(circle, #e2e6ff 0%, #f0f3ff 45%, transparent 70%); animation-delay: -18s; }
+.blob.a { left: -8%; top: -8%; background: radial-gradient(circle, #ffc0df 0%, #ffd3ec 45%, transparent 70%); }
+.blob.b { right: -8%; top: 12%; background: radial-gradient(circle, #bcecff 0%, #d6f3ff 45%, transparent 70%); animation-delay: -6s; }
+.blob.c { left: 14%; bottom: -15%; background: radial-gradient(circle, #d5ffe7 0%, #ecfff5 45%, transparent 70%); animation-delay: -12s; }
+.blob.d { right: -10%; bottom: -20%; background: radial-gradient(circle, #efe1ff 0%, #f6eaff 45%, transparent 70%); animation-delay: -18s; }
 @keyframes float { 50% { transform: translateY(-18px) translateX(16px);} }
 
 .container { width: min(1120px, 92vw); margin-inline: auto; }
@@ -188,16 +188,16 @@ h2 { font-size: clamp(1.55rem, 3vw, 2.1rem); margin: 0 0 1rem; }
   border-color: #c4dbf7;
   box-shadow: var(--shadow-hover);
 }
- .badge {
+.badge {
   display:inline-flex;
-  background: #e8ecff;
-  color: #3846a8;
+  background: #fce7f2;
+  color: #922667;
   padding: .28rem .6rem;
   border-radius: 999px;
   font-size: .74rem;
   font-weight: 700;
 }
-.badge.alt { background:#ddf7f3; color:#226f67; }
+.badge.alt { background:#e6f4ff; color:#1c568d; }
 .card h3 { margin:.45rem 0 .28rem; font-size:1.2rem; }
 .price { font-weight: 800; font-size: 1.2rem; margin-bottom:.35rem; }
 ul.clean { margin: .5rem 0 1rem; padding-left: 1.1rem; }
