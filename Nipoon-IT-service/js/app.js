@@ -38,17 +38,6 @@
   const getCurrentEmail = () => store().getItem('nk_current_user') || '';
   const setCurrentEmail = (email) => store().setItem('nk_current_user', email || '');
 
-
-  const wireAccountEntryLinks = () => {
-    const email = getCurrentEmail();
-    const loggedIn = Boolean(email);
-    document.querySelectorAll('[data-account-entry]').forEach((el) => {
-      el.setAttribute('href', loggedIn ? 'dashboard.html' : 'signup.html');
-      el.textContent = loggedIn ? 'Dashboard' : 'Konto erstellen';
-      el.setAttribute('aria-label', loggedIn ? 'Dashboard öffnen' : 'Kundenkonto öffnen');
-    });
-  };
-
   const getGuestState = () => ({
     points: Number(store().getItem('nk_guest_points') || 0),
     level: Number(store().getItem('nk_guest_level') || 1)
@@ -158,10 +147,6 @@
   const dashName = document.querySelector('[data-dashboard-name]');
   if (dashName) {
     const st = getActiveState();
-    if (!st.acc) {
-      location.href = 'signup.html';
-      return;
-    }
     const note = document.querySelector('[data-dashboard-note]');
     document.querySelector('[data-dashboard-points]').textContent = String(st.points);
     document.querySelector('[data-dashboard-level]').textContent = String(st.level);
@@ -180,6 +165,5 @@
   }
 
   updateTopbar();
-  wireAccountEntryLinks();
   ensureBanner();
 })();
