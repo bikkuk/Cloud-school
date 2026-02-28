@@ -12,188 +12,199 @@ from agent_studio.storage.project_store import ProjectStore
 class AgentStudioApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Agent Studio Desktop (No Browser)")
-        self.geometry("1420x860")
-        self.minsize(1200, 720)
+        self.title("AI Agent Studio (Local)")
+        self.geometry("1100x750")
 
-        self.config_data = json.loads(Path("agent_studio/config/studio_config.json").read_text(encoding="utf-8"))
-        self.store = ProjectStore("studio_projects")
-        self.llm = OllamaClient(self.config_data.get("ollama_url", "http://127.0.0.1:11434"))
-        self.orchestrator = StudioOrchestrator(self.llm, self.store, "agent_studio/config/allowed_commands.json")
+        self.store = ProjectStore()
+        self.llm = OllamaClient()
+        self.orchestrator = StudioOrchestrator(
+            llm=self.llm,
+            store=self.store,
+        )
 
-        self.current_project = tk.StringVar(value="_demo")
+        self.current_project = tk.StringVar(value="")
         self.status_var = tk.StringVar(value="Idle")
-        self.model_var = tk.StringVar(value=self.config_data.get("default_model", "qwen2.5:7b"))
-        self.temp_var = tk.DoubleVar(value=0.2)
-        preset = next(iter(self.config_data.get("context_presets", {"Medium (4K)": 4096})))
-        self.ctx_label_var = tk.StringVar(value=preset)
 
-        self.ux_lock = tk.BooleanVar(value=False)
-        self.function_lock = tk.BooleanVar(value=False)
-        self.page_lock = tk.BooleanVar(value=False)
-
-        self._build_layout()
+        self._build_ui()
         self._refresh_projects()
-        self._load_project_brief()
-        self._refresh_project_files()
 
-    def _build_layout(self):
-        top = ttk.Frame(self, padding=8)
-        top.pack(fill="x")
-        ttk.Label(top, text="Model:").pack(side="left")
-        ttk.Combobox(top, textvariable=self.model_var, values=self.config_data.get("models", []), width=22).pack(side="left", padx=6)
-        ttk.Button(top, text="Check Ollama", command=self.check_ollama).pack(side="left", padx=6)
-        ttk.Label(top, text="Temperature:").pack(side="left", padx=(18, 0))
-        ttk.Scale(top, from_=0.0, to=1.0, variable=self.temp_var, orient="horizontal", length=140).pack(side="left", padx=6)
-        ttk.Label(top, text="Context:").pack(side="left", padx=(18, 0))
-        ttk.Combobox(top, textvariable=self.ctx_label_var, values=list(self.config_data.get("context_presets", {}).keys()), width=14).pack(side="left", padx=6)
+    def _build_ui(self):
+        top = ttk.Frame(self)
+        top.pack(fill="x", padx=10, pady=8)
 
-        body = ttk.Frame(self, padding=8)
-        body.pack(fill="both", expand=True)
-        body.columnconfigure(1, weight=3)
-        body.columnconfigure(2, weight=2)
-        body.rowconfigure(0, weight=1)
+        ttk.Label(top, text="Project").pack(side="left")
+        self.project_combo = ttk.Combobox(top, textvariable=self.current_project, width=40)
+        self.project_combo.pack(side="left", padx=8)
+        self.project_combo.bind("<<ComboboxSelected>>", lambda e: self._load_project())
 
-        left = ttk.LabelFrame(body, text="Projects + Agents", padding=8)
-        left.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
-        ttk.Button(left, text="New Project", command=self.create_project).pack(fill="x")
-        self.project_list = tk.Listbox(left, height=10)
-        self.project_list.pack(fill="both", expand=True, pady=6)
-        self.project_list.bind("<<ListboxSelect>>", self.select_project)
-        ttk.Label(left, text="Agents").pack(anchor="w", pady=(8, 2))
-        self.agent_list = tk.Listbox(left, height=6)
-        for agent in ["PlannerAgent", "BuilderAgent", "ReviewerAgent", "RunnerAgent", "Packager"]:
-            self.agent_list.insert("end", agent)
-        self.agent_list.pack(fill="x")
-        ttk.Button(left, text="Attach File", command=self.attach_file).pack(fill="x", pady=(10, 0))
+        ttk.Button(top, text="New", command=self.new_project).pack(side="left", padx=4)
+        ttk.Button(top, text="Open Folder", command=self.open_project_folder).pack(side="left", padx=4)
+        ttk.Button(top, text="Refresh", command=self._refresh_projects).pack(side="left", padx=4)
 
-        center = ttk.LabelFrame(body, text="Task Brief", padding=8)
-        center.grid(row=0, column=1, sticky="nsew", padx=(0, 8))
-        self.brief_text = tk.Text(center, wrap="word", height=13)
-        self.brief_text.pack(fill="both", expand=True)
-        controls = ttk.Frame(center)
-        controls.pack(fill="x", pady=8)
-        ttk.Button(controls, text="Generate Plan", command=self.generate_plan).pack(side="left")
-        ttk.Button(controls, text="Run", command=self.run_pipeline).pack(side="left", padx=6)
-        ttk.Button(controls, text="Stop", command=self.stop_run).pack(side="left")
+        ttk.Label(top, text="Status:").pack(side="left", padx=(20, 4))
+        ttk.Label(top, textvariable=self.status_var).pack(side="left")
 
-        lock_bar = ttk.Frame(center)
-        lock_bar.pack(fill="x", pady=(2, 4))
-        ttk.Checkbutton(lock_bar, text="UX lock", variable=self.ux_lock).pack(side="left")
-        ttk.Checkbutton(lock_bar, text="Function lock", variable=self.function_lock).pack(side="left", padx=8)
-        ttk.Checkbutton(lock_bar, text="Page lock", variable=self.page_lock).pack(side="left")
+        mid = ttk.Panedwindow(self, orient="horizontal")
+        mid.pack(fill="both", expand=True, padx=10, pady=8)
 
-        ttk.Label(center, text="Plan Preview").pack(anchor="w")
-        self.plan_text = tk.Text(center, wrap="word", height=10)
-        self.plan_text.pack(fill="both", expand=True)
+        left = ttk.Frame(mid)
+        right = ttk.Frame(mid)
+        mid.add(left, weight=2)
+        mid.add(right, weight=3)
 
-        right = ttk.LabelFrame(body, text="Logs / Outputs / Files", padding=8)
-        right.grid(row=0, column=2, sticky="nsew")
-        ttk.Label(right, text="Logs").pack(anchor="w")
-        self.log_text = tk.Text(right, wrap="word", height=14)
-        self.log_text.pack(fill="both", expand=True)
-        ttk.Label(right, text="Gate Status").pack(anchor="w", pady=(8, 2))
-        self.gate_text = tk.Text(right, wrap="word", height=8)
-        self.gate_text.pack(fill="x")
-        self.gate_text.insert("1.0", "Run pipeline to see gate results.")
+        # Left: brief + plan
+        ttk.Label(left, text="Brief / Request").pack(anchor="w")
+        self.brief_text = tk.Text(left, height=10)
+        self.brief_text.pack(fill="x", pady=(4, 10))
 
-        ttk.Label(right, text="Project Files").pack(anchor="w", pady=(8, 2))
-        self.files_list = tk.Listbox(right, height=10)
-        self.files_list.pack(fill="both", expand=True)
+        btns = ttk.Frame(left)
+        btns.pack(fill="x", pady=(0, 10))
+        ttk.Button(btns, text="Generate Plan", command=self.generate_plan).pack(side="left")
+        ttk.Button(btns, text="Save Brief", command=self.save_brief).pack(side="left", padx=6)
 
-        bottom = ttk.Frame(self, padding=8)
-        bottom.pack(fill="x")
-        ttk.Label(bottom, textvariable=self.status_var).pack(side="left")
+        ttk.Label(left, text="Plan").pack(anchor="w")
+        self.plan_text = tk.Text(left, height=18)
+        self.plan_text.pack(fill="both", expand=True, pady=(4, 10))
 
-    def _ctx_value(self) -> int:
-        return self.config_data.get("context_presets", {}).get(self.ctx_label_var.get(), 4096)
+        runbar = ttk.Frame(left)
+        runbar.pack(fill="x")
+        ttk.Button(runbar, text="Run Pipeline", command=self.run_pipeline).pack(side="left")
+        ttk.Button(runbar, text="Stop", command=self.stop_run).pack(side="left", padx=6)
 
-    def _locks(self) -> dict:
-        return {
-            "ux_lock": self.ux_lock.get(),
-            "function_lock": self.function_lock.get(),
-            "page_lock": self.page_lock.get(),
-        }
+        # Right: log + files
+        tabs = ttk.Notebook(right)
+        tabs.pack(fill="both", expand=True)
+
+        log_tab = ttk.Frame(tabs)
+        files_tab = ttk.Frame(tabs)
+
+        tabs.add(log_tab, text="Live Log")
+        tabs.add(files_tab, text="Project Files")
+
+        self.log_text = tk.Text(log_tab, state="disabled")
+        self.log_text.pack(fill="both", expand=True, padx=6, pady=6)
+
+        files_top = ttk.Frame(files_tab)
+        files_top.pack(fill="x", padx=6, pady=6)
+        ttk.Button(files_top, text="Refresh Files", command=self._refresh_project_files).pack(side="left")
+        ttk.Button(files_top, text="Open File", command=self.open_selected_file).pack(side="left", padx=6)
+
+        self.files_list = tk.Listbox(files_tab)
+        self.files_list.pack(fill="both", expand=True, padx=6, pady=(0, 6))
+
+    def _append_log(self, line: str):
+        self.log_text.configure(state="normal")
+        self.log_text.insert("end", line.rstrip() + "\n")
+        self.log_text.see("end")
+        self.log_text.configure(state="disabled")
 
     def _refresh_projects(self):
-        self.store.ensure_project("_demo")
-        self.project_list.delete(0, "end")
-        for name in self.store.list_projects():
-            self.project_list.insert("end", name)
+        projects = self.store.list_projects()
+        self.project_combo["values"] = projects
+        if projects and (self.current_project.get() not in projects):
+            self.current_project.set(projects[0])
+            self._load_project()
 
-    def _load_project_brief(self):
-        project = self.current_project.get()
-        self.brief_text.delete("1.0", "end")
-        self.brief_text.insert("1.0", self.store.load_brief(project))
-
-    def _refresh_project_files(self):
-        self.files_list.delete(0, "end")
-        project = self.store.ensure_project(self.current_project.get())
-        for path in sorted(project.rglob("*")):
-            if path.is_file():
-                self.files_list.insert("end", path.relative_to(project).as_posix())
-
-    def _append_log(self, msg: str):
-        self.log_text.insert("end", msg + "\n")
-        self.log_text.see("end")
-
-    def _render_gates(self, gates: dict):
-        self.gate_text.delete("1.0", "end")
-        if not gates:
-            self.gate_text.insert("1.0", "No gate data.")
+    def _load_project(self):
+        project = self.current_project.get().strip()
+        if not project:
             return
-        lines = []
-        for gate, info in gates.items():
-            icon = "PASS" if info.get("pass") else "FAIL"
-            lines.append(f"{gate}: {icon} - {info.get('reason', '')}")
-        self.gate_text.insert("1.0", "\n".join(lines))
 
-    def create_project(self):
+        data = self.store.load_project(project)
+        brief = data.get("brief", "")
+        plan = data.get("plan", "")
+
+        self.brief_text.delete("1.0", "end")
+        self.brief_text.insert("1.0", brief)
+
+        self.plan_text.delete("1.0", "end")
+        self.plan_text.insert("1.0", plan)
+
+        self._append_log(f"Loaded project: {project}")
+        self._refresh_project_files()
+
+    def new_project(self):
         name = simpledialog.askstring("New Project", "Project name:")
         if not name:
             return
-        self.store.ensure_project(name)
-        self.current_project.set(name)
+        name = name.strip()
+        if not name:
+            return
+
+        self.store.create_project(name)
         self._refresh_projects()
-        self._load_project_brief()
-        self._refresh_project_files()
-
-    def select_project(self, _event=None):
-        selected = self.project_list.curselection()
-        if not selected:
-            return
-        name = self.project_list.get(selected[0])
         self.current_project.set(name)
-        self._load_project_brief()
-        self._refresh_project_files()
-        self.status_var.set(f"Selected project: {name}")
+        self._load_project()
 
-    def attach_file(self):
-        chosen = filedialog.askopenfilename(title="Select file to attach")
-        if not chosen:
+    def open_project_folder(self):
+        project = self.current_project.get().strip()
+        if not project:
+            messagebox.showwarning("No project", "Select a project first.")
             return
-        dest = self.store.copy_attachment(self.current_project.get(), chosen)
-        self._append_log(f"Attached copy saved: {dest.as_posix()}")
-        self._refresh_project_files()
+        folder = self.store.project_path(project)
+        try:
+            import os
+            os.startfile(str(folder))
+        except Exception as e:
+            messagebox.showerror("Open folder failed", str(e))
 
-    def check_ollama(self):
-        ok, msg = self.llm.check_connection()
-        if not ok:
-            messagebox.showerror("Ollama Check", msg)
+    def _refresh_project_files(self):
+        self.files_list.delete(0, "end")
+        project = self.current_project.get().strip()
+        if not project:
             return
-        model_ok, model_msg = self.llm.model_exists(self.model_var.get())
-        if model_ok:
-            messagebox.showinfo("Ollama Check", f"{msg}\n{model_msg}")
-        else:
-            messagebox.showwarning("Ollama Check", f"{msg}\n{model_msg}")
+        root = self.store.project_path(project)
+        if not root.exists():
+            return
 
-    def generate_plan(self):
-        project = self.current_project.get()
+        files = []
+        for p in root.rglob("*"):
+            if p.is_file():
+                rel = p.relative_to(root)
+                files.append(str(rel))
+        files.sort()
+        for f in files:
+            self.files_list.insert("end", f)
+
+    def open_selected_file(self):
+        project = self.current_project.get().strip()
+        if not project:
+            return
+        sel = self.files_list.curselection()
+        if not sel:
+            return
+        rel = self.files_list.get(sel[0])
+        path = self.store.project_path(project) / rel
+        try:
+            import os
+            os.startfile(str(path))
+        except Exception as e:
+            messagebox.showerror("Open file failed", str(e))
+
+    def save_brief(self):
+        project = self.current_project.get().strip()
+        if not project:
+            messagebox.showwarning("No project", "Select a project first.")
+            return
         brief = self.brief_text.get("1.0", "end").strip()
         self.store.save_brief(project, brief)
+        self._append_log("Brief saved.")
+
+    def generate_plan(self):
+        project = self.current_project.get().strip()
+        if not project:
+            messagebox.showwarning("No project", "Select a project first.")
+            return
+        brief = self.brief_text.get("1.0", "end").strip()
+        if not brief:
+            messagebox.showwarning("Missing brief", "Enter a brief/request first.")
+            return
+
         self.status_var.set("Running: Generating plan...")
+        self._append_log("Generating plan...")
+
         try:
-            plan = self.orchestrator.generate_plan(project, self.model_var.get(), brief, self.temp_var.get(), self._ctx_value())
+            plan = self.orchestrator.generate_plan(project, brief)
             self.plan_text.delete("1.0", "end")
             self.plan_text.insert("1.0", plan)
             self._append_log("Plan generated.")
@@ -208,47 +219,92 @@ class AgentStudioApp(tk.Tk):
         self.status_var.set("Stopped")
         self._append_log("Stop requested.")
 
+    # --- Thread-safe UI confirmation helper (fixes Tkinter thread issues) ---
+    def _ui_ask(self, fn):
+        done = threading.Event()
+        out = {"val": None, "err": None}
+
+        def run():
+            try:
+                out["val"] = fn()
+            except Exception as e:
+                out["err"] = e
+            finally:
+                done.set()
+
+        self.after(0, run)  # run on Tk main thread
+        done.wait()
+        if out["err"]:
+            raise out["err"]
+        return out["val"]
+
     def _confirm_overwrite(self, path: str, preview: str) -> bool:
-        return messagebox.askyesno("Confirm overwrite", f"File exists: {path}\n\n{preview}\n\nOverwrite?")
+        def ask():
+            return messagebox.askyesno(
+                "Confirm overwrite",
+                f"File exists: {path}\n\n{preview}\n\nOverwrite?"
+            )
+
+        return self._ui_ask(ask)
 
     def _confirm_command(self, cmd: str) -> bool:
-        return messagebox.askyesno("Command Approval", f"Command is not on allowlist:\n{cmd}\n\nRun anyway?")
+        def ask():
+            return messagebox.askyesno(
+                "Command Approval",
+                f"Command is not on allowlist:\n{cmd}\n\nRun anyway?"
+            )
+
+        return self._ui_ask(ask)
 
     def run_pipeline(self):
-        project = self.current_project.get()
+        project = self.current_project.get().strip()
         brief = self.brief_text.get("1.0", "end").strip()
         plan = self.plan_text.get("1.0", "end").strip()
+
+        if not project:
+            messagebox.showwarning("No project", "Select a project first.")
+            return
         if not plan:
             messagebox.showwarning("Missing plan", "Generate a plan first.")
             return
 
         self.status_var.set("Running")
+        self._append_log("Running pipeline...")
 
         def worker():
             try:
                 result = self.orchestrator.run(
                     project=project,
-                    model=self.model_var.get(),
-                    brief=brief,
                     plan=plan,
-                    temperature=self.temp_var.get(),
-                    num_ctx=self._ctx_value(),
-                    locks=self._locks(),
                     confirm_overwrite=self._confirm_overwrite,
                     confirm_command=self._confirm_command,
+                    log=self._append_log,
                 )
-                self._append_log(result.get("message", "Run done."))
-                self._append_log(f"Run folder: {result.get('run_dir', '')}")
-                self._render_gates(result.get("gates", {}))
-                self.status_var.set("Idle" if result.get("ok") else "Error")
+                ok = result.get("ok", False)
+                msg = result.get("message", "")
+                if ok:
+                    self._append_log("Pipeline completed successfully.")
+                    if msg:
+                        self._append_log(msg)
+                    self.status_var.set("Idle")
+                else:
+                    self._append_log("Pipeline failed.")
+                    if msg:
+                        self._append_log(msg)
+                    self.status_var.set("Error")
                 self._refresh_project_files()
             except Exception as exc:
                 self.status_var.set("Error")
-                self._append_log(f"Run failed: {exc}")
+                self._append_log(f"Pipeline error: {exc}")
 
-        threading.Thread(target=worker, daemon=True).start()
+        t = threading.Thread(target=worker, daemon=True)
+        t.start()
+
+
+def main():
+    app = AgentStudioApp()
+    app.mainloop()
 
 
 if __name__ == "__main__":
-    app = AgentStudioApp()
-    app.mainloop()
+    main()
