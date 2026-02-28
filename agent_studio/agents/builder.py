@@ -6,98 +6,88 @@ class BuilderAgent:
     def __init__(self, llm_client):
         self.llm = llm_client
 
-    def propose_product_files(
+    def propose_patch(
         self,
         model: str,
         brief: str,
         plan: str,
+        editable_paths: list[str],
         temperature: float,
         num_ctx: int,
-        context_notes: str = "",
     ) -> dict:
         prompt = (
-            "You are BuilderAgent. Generate a WORKING local product from the user's brief and plan. "
-            "Return STRICT JSON only (no markdown) in this schema: "
-            '{"summary":"...","files":[{"path":"index.html","content":"..."}]}. '
-            "Rules: paths must be relative and represent a runnable artifact (website/app/scripts). "
-            "Prefer complete files over stubs."
-            "\n\nPlan:\n"
-            f"{plan}\n\nBrief:\n{brief}\n"
+            "You are BuilderAgent. Return JSON only. Produce a minimal scoped patch plan.\n"
+            "Rules:\n"
+            "- Output JSON object with keys: summary, files.\n"
+            "- files must be an array of objects: {path, content}.\n"
+            "- Only use file paths under these allowed roots: "
+            f"{', '.join(editable_paths)}\n"
+            "- Keep files count <= 3.\n"
+            "- Do not include markdown fences.\n\n"
+            f"Plan:\n{plan}\n\n"
+            f"Brief:\n{brief}\n"
         )
-        if context_notes.strip():
-            prompt += "\nProject memory/context from prior iterations:\n" + context_notes + "\n"
-
         raw = self.llm.generate(model=model, prompt=prompt, temperature=temperature, num_ctx=num_ctx)
+        parsed = self._extract_json(raw)
+        if not isinstance(parsed, dict) or "files" not in parsed:
+            return self._fallback_patch(brief)
+        files = parsed.get("files")
+        if not isinstance(files, list):
+            return self._fallback_patch(brief)
+        return parsed
+
+    def _extract_json(self, raw: str):
+        cleaned = raw.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.strip("`")
+            cleaned = cleaned.replace("json\n", "", 1)
         try:
-            parsed = json.loads(raw)
-            if isinstance(parsed, dict) and isinstance(parsed.get("files", []), list):
-                return parsed
-        except json.JSONDecodeError:
-            pass
+            return json.loads(cleaned)
+        except Exception:
+            start = cleaned.find("{")
+            end = cleaned.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                try:
+                    return json.loads(cleaned[start : end + 1])
+                except Exception:
+                    return None
+            return None
+
+    def _fallback_patch(self, brief: str) -> dict:
         return {
-            "summary": "Builder returned non-JSON content. Saved as fallback markdown output.",
-            "files": [{"path": "generated_output.md", "content": raw}],
+            "summary": "Fallback patch generated locally.",
+            "files": [
+                {
+                    "path": "docs/generated_spec.md",
+                    "content": f"# Generated Spec\\n\\n{brief}\\n",
+                }
+            ],
         }
 
-    def _safe_relative_path(self, rel_path: str) -> str:
-        cleaned = rel_path.replace("\\", "/").strip().lstrip("/")
-        if not cleaned or cleaned.startswith("../") or "/../" in cleaned:
-            raise ValueError(f"Unsafe output path rejected: {rel_path}")
-        return cleaned
+    def apply_patch_plan(
+        self,
+        project_root: Path,
+        patch_plan: dict,
+        editable_roots: list[str],
+        max_files: int,
+    ) -> dict:
+        files = patch_plan.get("files", [])
+        if len(files) > max_files:
+            return {"ok": False, "reason": f"File cap exceeded ({len(files)}>{max_files}).", "changes": []}
 
-    def _strip_code_fences(self, content: str) -> str:
-        text = content.strip()
-        lines = text.splitlines()
-        if not lines:
-            return text
+        changes = []
+        for entry in files:
+            rel = str(entry.get("path", "")).replace("\\", "/").strip("/")
+            content = entry.get("content", "")
+            if not rel:
+                return {"ok": False, "reason": "Empty path in patch plan.", "changes": changes}
+            if not any(rel == root or rel.startswith(root + "/") for root in editable_roots):
+                return {"ok": False, "reason": f"Out-of-scope path: {rel}", "changes": changes}
 
-        first = lines[0].strip().lower()
-        last = lines[-1].strip().lower()
-
-        # Markdown fences like ```python ... ``` or ~~~js ... ~~~
-        if first.startswith("```") or first.startswith("~~~"):
-            lines = lines[1:]
-            if lines:
-                tail = lines[-1].strip().lower()
-                if tail in {"```", "~~~"}:
-                    lines = lines[:-1]
-
-        # Some local models return wrappers like "python,,," ... ",,,"
-        if lines and lines[0].strip().lower().endswith(",,,"):
-            lines = lines[1:]
-        if lines and lines[-1].strip() == ",,,":
-            lines = lines[:-1]
-
-        cleaned = "\n".join(lines).strip()
-        return cleaned if cleaned else text
-
-    def write_files_with_preview(self, outputs_dir: Path, files: list[dict], confirm_overwrite) -> tuple[list[dict], list[str]]:
-        writes = []
-        messages = []
-
-        for item in files:
-            rel = self._safe_relative_path(str(item.get("path", "")))
-            raw_content = str(item.get("content", ""))
-            content = self._strip_code_fences(raw_content)
-            target = outputs_dir / rel
+            target = project_root / rel
             target.parent.mkdir(parents=True, exist_ok=True)
-
-            if target.exists():
-                old = target.read_text(encoding="utf-8")
-                preview = (
-                    "--- Existing (first 300 chars) ---\n"
-                    f"{old[:300]}\n\n"
-                    "--- New (first 300 chars) ---\n"
-                    f"{content[:300]}"
-                )
-                if not confirm_overwrite(target.as_posix(), preview):
-                    messages.append(f"Overwrite cancelled for {rel}.")
-                    continue
-            else:
-                old = ""
-
+            old = target.read_text(encoding="utf-8") if target.exists() else ""
             target.write_text(content, encoding="utf-8")
-            writes.append({"path": rel, "old": old, "new": content})
-            messages.append(f"Wrote {rel}.")
+            changes.append({"path": rel, "old": old, "new": content})
 
-        return writes, messages
+        return {"ok": True, "reason": "Patch applied", "changes": changes}

@@ -1,150 +1,400 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI for Seniors (Offline)</title>
+  <title>Nipoon Kalam – IT & AI Services</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            heading: ['Bricolage Grotesque', 'sans-serif'],
+            body: ['Inter', 'sans-serif']
+          },
+          boxShadow: {
+            bento: '0 22px 60px rgba(15, 23, 42, 0.10)',
+            lift: '0 35px 75px rgba(79, 70, 229, 0.20)'
+          },
+          keyframes: {
+            drift: {
+              '0%, 100%': { transform: 'translate3d(0,0,0) rotate(0deg)' },
+              '50%': { transform: 'translate3d(28px,-22px,0) rotate(18deg)' }
+            },
+            wiggle: {
+              '0%, 100%': { transform: 'rotate(0deg)' },
+              '25%': { transform: 'rotate(5deg)' },
+              '75%': { transform: 'rotate(-5deg)' }
+            },
+            pulseGlow: {
+              '0%,100%': { boxShadow: '0 18px 40px rgba(129,140,248,.18)' },
+              '50%': { boxShadow: '0 22px 52px rgba(52,211,153,.35)' }
+            },
+            toastInOut: {
+              '0%': { opacity: '0', transform: 'translateY(8px) scale(.92)' },
+              '15%,85%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+              '100%': { opacity: '0', transform: 'translateY(-6px) scale(.9)' }
+            }
+          },
+          animation: {
+            drift: 'drift 22s ease-in-out infinite',
+            wiggle: 'wiggle .8s ease-in-out',
+            pulseGlow: 'pulseGlow 2.8s ease-in-out infinite',
+            toastInOut: 'toastInOut 1.8s ease forwards'
+          }
+        }
+      }
+    }
+  </script>
   <style>
     :root {
-      --bg: #000;
-      --panel: #111;
-      --text: #fff;
-      --accent: #ffd400;
-      --border: #444;
+      --bg: #F8FAFC;
+      --accent-start: #818CF8;
+      --accent-end: #34D399;
+      --fun: #F472B6;
+      --emoji-main: '✨';
+      --emoji-side: '🚀';
+      --emoji-badge: '🏅';
     }
-    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
-      margin: 0;
-      font-family: Arial, sans-serif;
+      font-family: Inter, system-ui, sans-serif;
       background: var(--bg);
-      color: var(--text);
-      font-size: 21px;
-      line-height: 1.45;
+      color: #0f172a;
     }
-    h1, h2 { color: var(--accent); }
-    .layout {
-      display: grid;
-      grid-template-columns: 1fr 2fr 1.4fr;
-      min-height: 100vh;
-      gap: 10px;
-      padding: 10px;
+
+    .headline {
+      font-family: 'Bricolage Grotesque', sans-serif;
     }
-    .panel {
-      background: var(--panel);
-      border: 2px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
-      overflow: auto;
+
+    .accent-gradient {
+      background-image: linear-gradient(135deg, var(--accent-start), var(--accent-end));
     }
-    button {
-      width: 100%;
-      margin: 6px 0;
-      font-size: 20px;
-      padding: 12px;
-      background: var(--accent);
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      color: #000;
-      font-weight: bold;
+
+    .bento-card {
+      border-radius: 32px;
+      transition: transform .28s ease, box-shadow .28s ease;
+      box-shadow: 0 22px 60px rgba(15, 23, 42, 0.10);
     }
-    textarea {
-      width: 100%;
-      min-height: 130px;
-      font-size: 20px;
-      padding: 10px;
-      border-radius: 10px;
-      border: 2px solid #888;
-      background: #fff;
-      color: #000;
+
+    .bento-card:hover {
+      transform: scale(1.03);
+      box-shadow: 0 35px 75px rgba(79, 70, 229, 0.2);
     }
-    #lesson-content {
-      white-space: pre-wrap;
+
+    .blob {
+      position: fixed;
+      border-radius: 9999px;
+      filter: blur(65px);
+      opacity: .34;
+      z-index: 0;
+      pointer-events: none;
+      animation: drift 22s ease-in-out infinite;
     }
-    .small-btn {
-      font-size: 18px;
-      padding: 10px;
+
+    .section-reveal {
+      opacity: 0;
+      transform: translateY(34px) scale(.98);
+      transition: opacity .8s cubic-bezier(0.22, 1, 0.36, 1), transform .8s cubic-bezier(0.22, 1, 0.36, 1);
     }
-    .answer {
-      margin-top: 12px;
-      background: #1f1f1f;
-      border-left: 5px solid var(--accent);
-      padding: 10px;
-      border-radius: 8px;
-      white-space: pre-wrap;
+
+    .section-reveal.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .knowledge-wrap {
+      backdrop-filter: blur(12px);
+      background: rgba(248, 250, 252, 0.8);
+    }
+
+    .confetti {
+      position: fixed;
+      width: 12px;
+      height: 12px;
+      top: var(--origin-y);
+      left: var(--origin-x);
+      border-radius: 3px;
+      z-index: 60;
+      opacity: .95;
+      pointer-events: none;
+      animation: confettiFall 1.5s ease-out forwards;
+      background: hsl(var(--h), 90%, 62%);
+      transform: translate3d(0,0,0) rotate(0deg);
+    }
+
+    @keyframes confettiFall {
+      to {
+        transform: translate3d(var(--x), var(--y), 0) rotate(var(--r));
+        opacity: 0;
+      }
     }
   </style>
 </head>
-<body>
-  <div class="layout">
-    <section class="panel">
-      <h2>Lessons</h2>
-      <div id="lesson-list"></div>
+<body class="relative overflow-x-hidden font-body">
+  <div class="blob h-72 w-72 top-16 -left-10 bg-violet-300"></div>
+  <div class="blob h-96 w-96 top-1/3 right-4 bg-emerald-300" style="animation-delay:-7s"></div>
+  <div class="blob h-72 w-72 bottom-24 -right-12 bg-pink-300" style="animation-delay:-11s"></div>
+  <div class="blob h-[22rem] w-[22rem] -bottom-16 left-1/3 bg-cyan-300" style="animation-delay:-15s"></div>
+
+  <header class="knowledge-wrap fixed top-0 inset-x-0 z-50 border-b border-slate-200/70">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+      <p class="headline text-sm md:text-base">Knowledge Bar · <span id="knowledge-level">Level 1</span></p>
+      <div class="w-full max-w-md h-3 bg-slate-200 rounded-full overflow-hidden">
+        <div id="knowledge-progress" class="h-full accent-gradient rounded-full transition-all duration-200" style="width:0%"></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="relative z-10 max-w-6xl mx-auto px-4 pt-28 pb-24 space-y-16">
+    <section class="section-reveal">
+      <div class="bento-card bg-white/90 p-8 md:p-12 grid gap-8 md:grid-cols-[1.2fr_.8fr] items-center">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-widest text-slate-500">Nipoon Kalam – IT & AI Services</p>
+          <h1 class="headline mt-4 text-4xl md:text-6xl leading-tight">Lass uns deine IT spielend einfach machen. <span class="mood-emoji">✨</span></h1>
+          <p class="mt-5 text-lg text-slate-600">Von lokaler KI bis smarter Automatisierung: Wir bauen digitale Lösungen, die sich wie ein modernes, freundliches Spiel anfühlen.</p>
+          <div class="mt-7 flex flex-wrap gap-3">
+            <a href="#services" class="accent-gradient text-white px-7 py-3 rounded-2xl font-semibold shadow-xl hover:-translate-y-1 transition inline-flex items-center gap-2">Quest starten <span class="mood-emoji">🚀</span></a>
+            <button id="secret-trigger" class="px-6 py-3 rounded-2xl border-2 border-slate-200 font-medium hover:border-pink-400 hover:text-pink-500 transition">Geheime Mission <span>🕵️</span></button>
+          </div>
+        </div>
+        <div class="bg-slate-50 border border-slate-200 rounded-3xl p-6">
+          <h2 class="headline text-2xl mb-4">AI Selector</h2>
+          <p class="text-slate-600">Wähle deinen Mood und passe Farben + Emojis live an.</p>
+          <div class="mt-5 grid gap-3">
+            <button class="mood-btn w-full rounded-2xl p-3 text-left bg-white border border-slate-200" data-mood="professional">Professional</button>
+            <button class="mood-btn w-full rounded-2xl p-3 text-left bg-white border border-slate-200" data-mood="creative">Creative</button>
+            <button class="mood-btn w-full rounded-2xl p-3 text-left bg-white border border-slate-200" data-mood="geek">Geek</button>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <section class="panel">
-      <h1>AI for Seniors</h1>
-      <button onclick="window.print()">Print lesson</button>
-      <div id="lesson-content">Select a lesson from the left.</div>
+    <section id="services" class="section-reveal">
+      <h2 class="headline text-3xl md:text-4xl mb-6">Service Bento <span class="mood-emoji">🎮</span></h2>
+      <div class="grid md:grid-cols-4 gap-5 auto-rows-[180px]">
+        <article class="service-card bento-card md:col-span-2 md:row-span-2 bg-white p-6 relative overflow-hidden animate-pulseGlow" data-service="Lokale KI">
+          <div class="service-badge hidden absolute right-4 top-4 text-xs font-bold py-1.5 px-3 rounded-full bg-emerald-100 text-emerald-700">🏅 Badge Unlocked</div>
+          <i data-lucide="cpu" class="wiggle-icon w-9 h-9 text-violet-500"></i>
+          <h3 class="headline mt-3 text-2xl">Lokale KI</h3>
+          <p class="mt-2 text-slate-600">Private On-Prem Modelle, die schnell reagieren und Daten souverän schützen.</p>
+        </article>
+        <article class="service-card bento-card bg-white p-6 relative" data-service="Automationen">
+          <div class="service-badge hidden absolute right-4 top-4 text-xs font-bold py-1.5 px-3 rounded-full bg-emerald-100 text-emerald-700">🏅 Badge Unlocked</div>
+          <i data-lucide="workflow" class="wiggle-icon w-8 h-8 text-emerald-500"></i>
+          <h3 class="headline mt-3 text-xl">Automationen</h3>
+          <p class="text-slate-600 text-sm mt-2">Workflows ohne Reibung.</p>
+        </article>
+        <article class="service-card bento-card bg-white p-6 relative" data-service="Cloud Ops">
+          <div class="service-badge hidden absolute right-4 top-4 text-xs font-bold py-1.5 px-3 rounded-full bg-emerald-100 text-emerald-700">🏅 Badge Unlocked</div>
+          <i data-lucide="cloud-cog" class="wiggle-icon w-8 h-8 text-sky-500"></i>
+          <h3 class="headline mt-3 text-xl">Cloud Ops</h3>
+          <p class="text-slate-600 text-sm mt-2">Skalierbar & sicher deployen.</p>
+        </article>
+        <article class="service-card bento-card md:col-span-2 bg-white p-6 relative" data-service="AI Training">
+          <div class="service-badge hidden absolute right-4 top-4 text-xs font-bold py-1.5 px-3 rounded-full bg-emerald-100 text-emerald-700">🏅 Badge Unlocked</div>
+          <i data-lucide="graduation-cap" class="wiggle-icon w-8 h-8 text-pink-500"></i>
+          <h3 class="headline mt-3 text-xl">AI Training</h3>
+          <p class="text-slate-600 text-sm mt-2">Teams lernen KI praxisnah und gamifiziert.</p>
+        </article>
+      </div>
     </section>
 
-    <section class="panel">
-      <h2>Ask a question</h2>
-      <textarea id="question" placeholder="Ask about AI basics, safety, privacy, scams, or risks..."></textarea>
-      <button onclick="askQuestion()">Ask</button>
-      <button class="small-btn" onclick="appendPrompt('Explain simpler')">Explain simpler</button>
-      <button class="small-btn" onclick="appendPrompt('Give an example')">Give an example</button>
-      <button class="small-btn" onclick="appendPrompt('Common mistake')">Common mistake</button>
-      <button class="small-btn" onclick="appendPrompt('Safety tip')">Safety tip</button>
-      <div id="answer" class="answer">Your answer will appear here.</div>
+    <section id="pricing" class="section-reveal">
+      <h2 class="headline text-3xl md:text-4xl mb-6">Power-ups</h2>
+      <div class="grid md:grid-cols-3 gap-5">
+        <article class="bento-card bg-white p-7">
+          <p class="text-sm text-slate-500">Starter Buff</p>
+          <h3 class="headline text-2xl mt-2">Launch</h3>
+          <p class="text-4xl headline mt-3">€899</p>
+          <p class="text-slate-600 mt-3">Kickoff, Audit, Roadmap.</p>
+        </article>
+        <article class="bento-card bg-slate-900 text-white p-7">
+          <p class="text-sm text-slate-300">Pro Buff</p>
+          <h3 class="headline text-2xl mt-2">Scale Quest</h3>
+          <p class="text-4xl headline mt-3">€2.400</p>
+          <p class="text-slate-300 mt-3">Automation + lokale KI Integration.</p>
+        </article>
+        <article class="bento-card bg-white p-7 border-2 border-pink-300">
+          <p class="text-sm text-pink-500">Elite Buff</p>
+          <h3 class="headline text-2xl mt-2">Legend Mode</h3>
+          <p class="text-4xl headline mt-3">Custom</p>
+          <p class="text-slate-600 mt-3">White-label KI Plattformen inkl. Support.</p>
+        </article>
+      </div>
     </section>
-  </div>
 
+    <section id="contact" class="section-reveal">
+      <div class="bento-card bg-white p-8">
+        <h2 class="headline text-3xl">Kontakt-Quest</h2>
+        <p class="text-slate-600 mt-2">Schreib uns dein Ziel und wir designen den nächsten Move.</p>
+        <form id="contact-form" class="mt-6 grid gap-4 md:grid-cols-2">
+          <input required class="rounded-2xl border border-slate-200 p-3" placeholder="Name" />
+          <input required type="email" class="rounded-2xl border border-slate-200 p-3" placeholder="E-Mail" />
+          <textarea required class="md:col-span-2 rounded-2xl border border-slate-200 p-3 min-h-[130px]" placeholder="Was möchtest du bauen?"></textarea>
+          <button class="accent-gradient md:col-span-2 text-white rounded-2xl p-3 font-semibold">Mission senden <span class="mood-emoji">✨</span></button>
+        </form>
+        <p id="form-message" class="mt-3 text-sm text-emerald-700 hidden">Erfolgreich gesendet!</p>
+      </div>
+    </section>
+  </main>
+
+  <footer id="footer" class="section-reveal relative z-10 border-t border-slate-200/80 bg-white/60">
+    <div class="max-w-6xl mx-auto px-4 py-10">
+      <p class="headline text-2xl">Secret Area <button id="secret-emoji" class="ml-2">🤫</button></p>
+      <p id="secret-message" class="hidden mt-3 text-pink-500 font-semibold">You found a secret! 🎉</p>
+      <p class="mt-4 text-slate-500">© Nipoon Kalam · IT & AI Services</p>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/lucide@latest"></script>
   <script>
-    const lessonList = document.getElementById('lesson-list');
-    const lessonContent = document.getElementById('lesson-content');
-    const answerBox = document.getElementById('answer');
-
-    async function loadLessons() {
-      const res = await fetch('/api/lessons');
-      const data = await res.json();
-      lessonList.innerHTML = '';
-      data.lessons.forEach((lesson) => {
-        const btn = document.createElement('button');
-        btn.textContent = lesson.replace('.md', '').replaceAll('-', ' ');
-        btn.onclick = () => openLesson(lesson);
-        lessonList.appendChild(btn);
-      });
-    }
-
-    async function openLesson(name) {
-      const res = await fetch(`/api/lessons/${encodeURIComponent(name)}`);
-      lessonContent.textContent = await res.text();
-    }
-
-    function appendPrompt(text) {
-      const box = document.getElementById('question');
-      box.value = box.value.trim() ? `${box.value.trim()}\n${text}` : text;
-      box.focus();
-    }
-
-    async function askQuestion() {
-      const question = document.getElementById('question').value.trim();
-      if (!question) {
-        answerBox.textContent = 'Please type a question first.';
-        return;
+    const gamificationConfig = {
+      levels: ['Level 1', 'Level 2', 'Level 3', 'Level 4', 'Level 5'],
+      moods: {
+        professional: { start: '#818CF8', end: '#34D399', fun: '#F472B6', emojiMain: '✨', emojiSide: '🚀', emojiBadge: '🏅' },
+        creative: { start: '#FB7185', end: '#22D3EE', fun: '#A855F7', emojiMain: '🎨', emojiSide: '🪄', emojiBadge: '🌟' },
+        geek: { start: '#6366F1', end: '#14B8A6', fun: '#F59E0B', emojiMain: '🤖', emojiSide: '🧪', emojiBadge: '✅' }
       }
-      answerBox.textContent = 'Thinking...';
-      const res = await fetch('/api/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question })
+    };
+
+    const progressBar = document.getElementById('knowledge-progress');
+    const levelText = document.getElementById('knowledge-level');
+
+    function setMood(mood) {
+      const selected = gamificationConfig.moods[mood];
+      if (!selected) return;
+      document.documentElement.style.setProperty('--accent-start', selected.start);
+      document.documentElement.style.setProperty('--accent-end', selected.end);
+      document.documentElement.style.setProperty('--fun', selected.fun);
+      document.documentElement.style.setProperty('--emoji-main', `'${selected.emojiMain}'`);
+      document.documentElement.style.setProperty('--emoji-side', `'${selected.emojiSide}'`);
+      document.documentElement.style.setProperty('--emoji-badge', `'${selected.emojiBadge}'`);
+
+      document.querySelectorAll('.mood-emoji').forEach((el, index) => {
+        el.textContent = index % 2 === 0 ? selected.emojiMain : selected.emojiSide;
       });
-      const data = await res.json();
-      answerBox.textContent = data.answer;
+      document.querySelectorAll('.service-badge').forEach((badge) => {
+        badge.textContent = `${selected.emojiBadge} Badge Unlocked`;
+      });
     }
 
-    loadLessons();
+    function updateKnowledgeBar() {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      const ratio = scrollable > 0 ? (window.scrollY / scrollable) : 0;
+      const percent = Math.max(0, Math.min(100, ratio * 100));
+      progressBar.style.width = `${percent}%`;
+      const levelIndex = Math.min(gamificationConfig.levels.length - 1, Math.floor(ratio * gamificationConfig.levels.length));
+      levelText.textContent = gamificationConfig.levels[levelIndex];
+    }
+
+    function showBadge(card) {
+      const badge = card.querySelector('.service-badge');
+      if (!badge) return;
+      badge.classList.remove('hidden');
+      badge.classList.add('animate-toastInOut');
+      setTimeout(() => {
+        badge.classList.add('hidden');
+        badge.classList.remove('animate-toastInOut');
+      }, 1850);
+    }
+
+    function spawnConfetti(x, y) {
+      for (let i = 0; i < 28; i++) {
+        const piece = document.createElement('span');
+        piece.className = 'confetti';
+        piece.style.setProperty('--origin-x', `${x}px`);
+        piece.style.setProperty('--origin-y', `${y}px`);
+        piece.style.setProperty('--x', `${(Math.random() - 0.5) * 240}px`);
+        piece.style.setProperty('--y', `${110 + Math.random() * 220}px`);
+        piece.style.setProperty('--r', `${(Math.random() - 0.5) * 520}deg`);
+        piece.style.setProperty('--h', `${Math.random() * 360}`);
+        document.body.appendChild(piece);
+        setTimeout(() => piece.remove(), 1500);
+      }
+    }
+
+    function initSectionReveal() {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('show');
+          }
+        });
+      }, { threshold: 0.14, rootMargin: '0px 0px -8% 0px' });
+      document.querySelectorAll('.section-reveal').forEach((el, index) => {
+        el.style.transitionDelay = `${index * 80}ms`;
+        observer.observe(el);
+      });
+    }
+
+    function initIconWiggle() {
+      setInterval(() => {
+        document.querySelectorAll('.wiggle-icon').forEach((icon, index) => {
+          setTimeout(() => {
+            icon.classList.add('animate-wiggle');
+            setTimeout(() => icon.classList.remove('animate-wiggle'), 820);
+          }, index * 120);
+        });
+      }, 5000);
+    }
+
+    document.querySelectorAll('.mood-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.mood-btn').forEach((b) => b.classList.remove('ring-2', 'ring-violet-300'));
+        btn.classList.add('ring-2', 'ring-violet-300');
+        setMood(btn.dataset.mood);
+      });
+    });
+
+    document.querySelectorAll('.service-card').forEach((card) => {
+      card.addEventListener('mouseenter', () => showBadge(card));
+    });
+
+    document.getElementById('contact-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const message = document.getElementById('form-message');
+      message.classList.remove('hidden');
+      spawnConfetti(window.innerWidth / 2, window.innerHeight / 2);
+      event.target.reset();
+    });
+
+    document.getElementById('secret-emoji').addEventListener('click', () => {
+      document.getElementById('secret-message').classList.remove('hidden');
+    });
+
+    document.getElementById('secret-trigger').addEventListener('click', () => {
+      document.getElementById('pricing').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+
+    const footerObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const rect = entry.target.getBoundingClientRect();
+          spawnConfetti(window.innerWidth / 2, rect.top + 24);
+          footerObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.55 });
+    footerObserver.observe(document.getElementById('footer'));
+
+    window.addEventListener('scroll', updateKnowledgeBar);
+    window.addEventListener('resize', updateKnowledgeBar);
+
+    setMood('professional');
+    document.querySelector('.mood-btn[data-mood="professional"]').classList.add('ring-2', 'ring-violet-300');
+    initSectionReveal();
+    initIconWiggle();
+    updateKnowledgeBar();
+    lucide.createIcons();
   </script>
 </body>
 </html>
