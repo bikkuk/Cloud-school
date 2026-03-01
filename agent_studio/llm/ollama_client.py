@@ -22,21 +22,17 @@ class OllamaClient:
         with request.urlopen(req, timeout=15) as resp:
             return json.loads(resp.read().decode("utf-8"))
 
-    def list_models(self) -> list[str]:
-        tags = self._get_json("/api/tags")
-        models = [m.get("name", "").strip() for m in tags.get("models", [])]
-        return sorted([m for m in models if m])
-
     def check_connection(self) -> tuple[bool, str]:
         try:
-            self.list_models()
+            self._get_json("/api/tags")
             return True, "Ollama is reachable."
         except Exception as exc:
             return False, f"Cannot reach Ollama at {self.base_url}: {exc}"
 
     def model_exists(self, model: str) -> tuple[bool, str]:
         try:
-            names = set(self.list_models())
+            tags = self._get_json("/api/tags")
+            names = {m.get("name", "") for m in tags.get("models", [])}
             if model in names:
                 return True, f"Model '{model}' is installed."
             return False, f"Model '{model}' not found. Run: ollama pull {model}"

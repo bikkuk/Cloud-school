@@ -1,157 +1,192 @@
 import difflib
+import json
+from datetime import datetime
 from pathlib import Path
 
 from agent_studio.agents.builder import BuilderAgent
 from agent_studio.agents.planner import PlannerAgent
-from agent_studio.agents.reviewer import ReviewerAgent
 from agent_studio.agents.runner import RunnerAgent
+from agent_studio.config.defaults import DEFAULT_ALLOWLIST
+from agent_studio.storage.project_store import ProjectStore
 
 
 class StudioOrchestrator:
-    def __init__(self, llm_client, project_store, allowlist_path: str):
-        self.planner = PlannerAgent(llm_client)
-        self.builder = BuilderAgent(llm_client)
-        self.reviewer = ReviewerAgent()
-        self.runner = RunnerAgent(allowlist_path)
-        self.store = project_store
-        self.stop_requested = False
+    def __init__(self, llm, store: ProjectStore | None = None):
+        self.llm = llm
+        self.store = store or ProjectStore()
+        self._stop = False
+
+        self.planner = PlannerAgent(llm=self.llm)
+        self.builder = BuilderAgent(llm=self.llm)
+        self.runner = RunnerAgent(llm=self.llm)
 
     def stop(self):
-        self.stop_requested = True
+        self._stop = True
 
-    def _memory_context(self, project: str, memory_depth: int) -> str:
-        history = self.store.load_prompt_history(project, limit=max(2, memory_depth * 2))
-        runs = self.store.get_recent_run_summaries(project, limit=memory_depth)
-        outputs = self.store.get_outputs_snapshot(project)
-
-        history_lines = []
-        for item in history:
-            itype = item.get("type", "unknown")
-            model = item.get("model", "")
-            brief = str(item.get("brief", ""))[:240]
-            history_lines.append(f"type={itype} model={model} brief={brief}")
-
-        parts = []
-        if history_lines:
-            parts.append("Recent prompt history:\n" + "\n".join(history_lines))
-        if runs:
-            parts.append("Recent runs:\n" + "\n\n".join(runs))
-        if outputs:
-            parts.append("Current outputs snapshot:\n" + outputs)
-        return "\n\n".join(parts)
-
-    def generate_plan(
-        self,
-        project: str,
-        model: str,
-        brief: str,
-        temperature: float,
-        num_ctx: int,
-        use_memory: bool = True,
-        memory_depth: int = 3,
-    ) -> str:
-        self.store.save_brief(project, brief)
-        context_notes = self._memory_context(project, memory_depth) if use_memory else ""
-        plan = self.planner.build_plan(model, brief, temperature, num_ctx, context_notes=context_notes)
+    def generate_plan(self, project: str, brief: str) -> str:
+        self._stop = False
+        plan = self.planner.generate_plan(project=project, brief=brief)
         self.store.save_plan(project, plan)
-        self.store.append_prompt_history(project, {"type": "plan", "model": model, "brief": brief, "plan": plan})
         return plan
 
     def run(
         self,
         project: str,
-        model: str,
-        brief: str,
         plan: str,
-        temperature: float,
-        num_ctx: int,
-        locks: dict[str, bool],
+        *,
         confirm_overwrite,
         confirm_command,
-        use_memory: bool = True,
-        memory_depth: int = 3,
-    ) -> dict:
-        self.stop_requested = False
-        run_dir = self.store.create_run_folder(project)
-        outputs_dir = self.store.project_path(project) / "outputs"
+        log,
+        allowlist=None,
+    ):
+        self._stop = False
+        allowlist = allowlist or DEFAULT_ALLOWLIST
 
-        self.store.save_plan(project, plan)
-        (run_dir / "plan.md").write_text(plan, encoding="utf-8")
+        project_dir = self.store.project_path(project)
+        project_dir.mkdir(parents=True, exist_ok=True)
 
-        approved, review_msg = self.reviewer.review(plan, locks)
-        if not approved:
-            self.store.append_run_log(project, review_msg)
-            (run_dir / "run_log.txt").write_text(review_msg, encoding="utf-8")
-            return {"ok": False, "message": review_msg, "run_dir": run_dir.as_posix()}
+        run_id = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        run_dir = project_dir / "runs" / run_id
+        run_dir.mkdir(parents=True, exist_ok=True)
 
-        if self.stop_requested:
-            stop_msg = "Stopped by user."
-            self.store.append_run_log(project, stop_msg)
-            return {"ok": False, "message": stop_msg, "run_dir": run_dir.as_posix()}
+        def _log(msg: str):
+            try:
+                log(msg)
+            except Exception:
+                pass
 
-        context_notes = self._memory_context(project, memory_depth) if use_memory else ""
-        build_result = self.builder.propose_product_files(
-            model=model,
-            brief=brief,
-            plan=plan,
-            temperature=temperature,
-            num_ctx=num_ctx,
-            context_notes=context_notes,
+        def _read_text(p: Path) -> str:
+            if not p.exists():
+                return ""
+            return p.read_text(encoding="utf-8", errors="ignore")
+
+        def _write_text(p: Path, s: str):
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(s, encoding="utf-8")
+
+        def _snapshot_tree(root: Path) -> dict[str, str]:
+            snapshot = {}
+            for f in root.rglob("*"):
+                if f.is_file():
+                    # skip run artifacts to avoid diff noise
+                    if "runs" in f.parts:
+                        continue
+                    rel = f.relative_to(root).as_posix()
+                    snapshot[rel] = _read_text(f)
+            return snapshot
+
+        def _diff_snap(before: dict[str, str], after: dict[str, str]) -> str:
+            paths = sorted(set(before.keys()) | set(after.keys()))
+            out = []
+            for rel in paths:
+                a = before.get(rel, "").splitlines(keepends=True)
+                b = after.get(rel, "").splitlines(keepends=True)
+                if a == b:
+                    continue
+                out.append(f"--- a/{rel}\n+++ b/{rel}\n")
+                out.extend(difflib.unified_diff(a, b, fromfile=f"a/{rel}", tofile=f"b/{rel}"))
+                if out and not out[-1].endswith("\n"):
+                    out[-1] += "\n"
+            return "".join(out)
+
+        # --- Run plan parsing ---
+        _log("Parsing plan...")
+        patch_plan = self.builder.parse_plan(plan)
+
+        # --- Build (write/modify files) ---
+        _log("Applying build steps...")
+        before = _snapshot_tree(project_dir)
+        writes = self.builder.apply_plan(
+            project_dir=project_dir,
+            plan=patch_plan,
+            confirm_overwrite=confirm_overwrite,
+            log=_log,
+            stop_flag=lambda: self._stop,
         )
-        summary = str(build_result.get("summary", ""))
-        files = build_result.get("files", [])
-        (run_dir / "changes_summary.md").write_text(summary or "No summary.", encoding="utf-8")
+        after = _snapshot_tree(project_dir)
+        combined_diff = _diff_snap(before, after)
 
-        writes, write_messages = self.builder.write_files_with_preview(outputs_dir, files, confirm_overwrite)
+        # --- Gates / approvals ---
+        gates = {}
 
-        diff_chunks = []
-        for w in writes:
-            diff = difflib.unified_diff(
-                w["old"].splitlines(keepends=True),
-                w["new"].splitlines(keepends=True),
-                fromfile=f"before/{w['path']}",
-                tofile=f"after/{w['path']}",
-            )
-            diff_chunks.append("".join(diff))
-
-        diff_text = "\n".join(diff_chunks).strip()
-        if diff_text:
-            self.store.save_changes_patch(project, diff_text)
-            (run_dir / "changes.patch").write_text(diff_text, encoding="utf-8")
-
-        tests_exist = Path("tests").exists()
-        if tests_exist:
-            run_ok, runner_log = self.runner.run("python -m pytest", confirm_command)
+        # Gate: diff must exist if writes happened
+        build_ok = True
+        if not writes:
+            build_ok = False
+            gates["G1"] = {"pass": False, "reason": "No files were written/changed."}
         else:
-            run_ok, runner_log = True, "No tests directory found. Runner skipped command execution."
+            gates["G1"] = {"pass": True, "reason": "Files were written/changed."}
 
-        write_msg = " ".join(write_messages) if write_messages else "No files written."
-        log_text = (
-            f"Reviewer: {review_msg}\n"
-            f"Builder summary: {summary}\n"
-            f"Builder writes: {write_msg}\n"
-            f"Runner ok={run_ok}\n\n{runner_log}"
-        )
-        self.store.append_run_log(project, log_text)
-        (run_dir / "run_log.txt").write_text(log_text, encoding="utf-8")
+        # Gate: command allowlist approval
+        approval_pass = True
 
-        self.store.append_prompt_history(
-            project,
-            {
-                "type": "run",
-                "model": model,
-                "brief": brief,
-                "plan": plan,
-                "summary": summary,
-                "written_files": [w["path"] for w in writes],
-            },
+        # Run commands (including tests)
+        _log("Running commands...")
+        runner_out = self.runner.run_project(
+            project_dir=project_dir,
+            plan=patch_plan,
+            allowlist=allowlist,
+            confirm_command=confirm_command,
+            log=_log,
+            stop_flag=lambda: self._stop,
         )
+
+        # runner_out should include test_ok; if not, default conservatively to False
+        test_ok = bool(runner_out.get("test_ok", False))
+        cmd_ok = bool(runner_out.get("ok", False))
+
+        if not cmd_ok:
+            approval_pass = False
+            gates["G2"] = {"pass": False, "reason": "One or more commands failed or were blocked."}
+        else:
+            gates["G2"] = {"pass": True, "reason": "Commands executed successfully."}
+
+        if not test_ok:
+            gates["G3"] = {"pass": False, "reason": "Tests failed."}
+        else:
+            gates["G3"] = {"pass": True, "reason": "Tests passed."}
+
+        # Optional: additional gates from runner
+        extra_gates = runner_out.get("gates") or {}
+        for k, v in extra_gates.items():
+            gates[k] = v
+
+        # Write run artifacts
+        _write_text(run_dir / "run_log.txt", runner_out.get("log", ""))
+        _write_text(run_dir / "changes.patch", combined_diff)
+        _write_text(run_dir / "changes_summary.md", patch_plan.get("summary", ""))
+        _write_text(run_dir / "plan.md", plan)
+
+        # --- FINAL RESULT (FIXED) ---
+        # Must fail if tests fail.
+        final_ok = approval_pass and build_ok and test_ok
+
+        if final_ok:
+            message = "Pipeline completed."
+        else:
+            # make the failure reason obvious in the UI
+            if not build_ok:
+                message = "Pipeline failed: build checks failed."
+            elif not test_ok:
+                message = "Pipeline failed: tests failed."
+            else:
+                message = "Pipeline completed with gate failures."
 
         return {
-            "ok": bool(writes),
-            "message": write_msg,
+            "ok": final_ok,
+            "message": message,
             "run_dir": run_dir.as_posix(),
-            "diff": diff_text,
-            "runner_log": runner_log,
-            "written_files": [w["path"] for w in writes],
+            "diff": combined_diff,
+            "runner_log": f"build_ok={build_ok}, test_ok={test_ok}",
+            "gates": gates,
         }
+
+
+def load_allowlist(path: str | Path) -> dict:
+    p = Path(path)
+    if not p.exists():
+        return DEFAULT_ALLOWLIST
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return DEFAULT_ALLOWLIST

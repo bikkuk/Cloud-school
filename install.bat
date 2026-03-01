@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 
-echo === Cloud School Installer (Seniors + Agent Studio) ===
+echo === AI Agent Studio Installer (Offline-First) ===
 
 echo.
 where python >nul 2>nul
@@ -14,21 +14,9 @@ if errorlevel 1 (
 python --version
 
 echo.
-if exist .venv (
-  set /p RECREATE_VENV=.venv already exists. Recreate it? [y/N]: 
-  if /I "%RECREATE_VENV%"=="y" (
-    echo Removing existing .venv...
-    rmdir /S /Q .venv
-  )
-)
-
 if not exist .venv (
   echo Creating virtual environment...
   python -m venv .venv
-  if errorlevel 1 (
-    echo [ERROR] Failed to create virtual environment.
-    exit /b 1
-  )
 )
 
 call .venv\Scripts\activate.bat
@@ -39,12 +27,7 @@ if errorlevel 1 (
 
 echo Upgrading pip...
 python -m pip install --upgrade pip
-if errorlevel 1 (
-  echo [ERROR] Failed to upgrade pip.
-  exit /b 1
-)
 
-echo.
 echo Installing AI for Seniors backend dependencies...
 python -m pip install -r server\requirements.txt
 if errorlevel 1 (
@@ -70,16 +53,22 @@ if errorlevel 1 (
 )
 
 echo Ollama detected.
-echo.
-echo Checking Ollama service reachability...
-ollama list >nul 2>nul
+
+echo Checking for local models...
+ollama list | findstr /C:"qwen2.5:7b" >nul
 if errorlevel 1 (
-  echo [WARNING] Could not query Ollama right now.
-  set /p START_OLLAMA=Do you want to continue anyway? [y/N]: 
-  if /I not "%START_OLLAMA%"=="y" (
-    echo Install cancelled. Start Ollama, then run install.bat again.
-    exit /b 1
-  )
+  echo [WARNING] Model qwen2.5:7b not found locally.
+  echo Run once: ollama pull qwen2.5:7b
+) else (
+  echo Model qwen2.5:7b is installed.
+)
+
+ollama list | findstr /C:"llama3.1:8b" >nul
+if errorlevel 1 (
+  echo [WARNING] Model llama3.1:8b not found locally.
+  echo Optional: ollama pull llama3.1:8b
+) else (
+  echo Model llama3.1:8b is installed.
 )
 
 echo.
