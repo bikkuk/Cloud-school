@@ -53,3 +53,66 @@ After model download, normal use is fully offline.
 ## Notes
 - The assistant never asks the learner to go online.
 - Out-of-scope questions are refused and redirected to lessons.
+
+---
+
+## AI Agent Studio (Desktop)
+
+A new local-first desktop Studio is available under `agent_studio/`.
+
+### Start Studio
+```bat
+start_studio.bat
+```
+
+### Studio highlights
+- Tkinter desktop UI (no Electron, no cloud APIs)
+- Exactly 4 internal agents: Planner, Reviewer, Builder, Runner
+- Ollama local integration via `http://127.0.0.1:11434`
+- Project-scoped artifacts stored under `studio_projects/<project>/`
+
+For detailed setup and usage, see `README_STUDIO.md`.
+
+---
+
+## Project Separation (School of Thoughts / Seniors / Studio)
+
+Your repository now keeps these as separate entry points:
+
+1. **School of Thoughts (your root `index.html`)**
+   - Start with:
+     ```bat
+     start_school_of_thoughts.bat
+     ```
+
+2. **AI for Seniors module**
+   - Start with:
+     ```bat
+     start_seniors.bat
+     ```
+   - (`start.bat` also remains the Seniors launcher for backward compatibility.)
+
+3. **AI Agent Studio desktop app**
+   - Start with:
+     ```bat
+     start_studio.bat
+     ```
+
+This keeps each experience independent without removing or rewriting existing modules.
+
+---
+
+## If something doesn't start (quick fix)
+
+- Always launch from the provided `.bat` files in this folder (they now auto-switch to the repo folder first).
+- Studio:
+  - `start_studio.bat`
+- Seniors:
+  - `start_seniors.bat` (or `start.bat`)
+- School of Thoughts:
+  - `start_school_of_thoughts.bat`
+
+If Studio still fails:
+1. Run `install.bat` once.
+2. Confirm Ollama is running locally.
+3. Retry `start_studio.bat`.
