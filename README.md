@@ -1,118 +1,25 @@
-# AI for Seniors (Offline + Local)
+# Cloud School Repository
 
-This module runs fully offline after one-time setup.
+This repository now includes two local-first modules:
 
-## What it includes
-- Local web app with large text and high contrast
-- 8 beginner-friendly lessons in `/lessons`
-- Local assistant restricted to:
-  - AI basics
-  - AI safety
-  - privacy
-  - scams
-  - risks
-- Safety guardrails that refuse:
-  - medical advice
-  - legal advice
-  - financial advice
-  - harmful or illegal instructions
+1. **AI for Seniors** (existing web module)
+2. **AI Agent Studio** (new Tkinter desktop module)
 
-## Requirements (Windows)
-1. Python 3.10+
-2. Ollama installed
-3. Local model: `qwen2.5:7b`
+Both modules are offline-capable after one-time setup and use local Ollama models.
 
-## One-time install
-1. Open Command Prompt in this project folder.
-2. Run:
-   ```bat
-   install.bat
-   ```
-3. If prompted, run once:
-   ```bat
-   ollama pull qwen2.5:7b
-   ```
-
-After model download, normal use is fully offline.
-
-## Start the app
-1. Make sure Ollama is running.
-2. Run:
-   ```bat
-   start.bat
-   ```
-3. Browser opens at `http://127.0.0.1:5000`.
-
-## Project structure
-- `/lessons` - 8 markdown lesson files
-- `/server` - Flask backend and Ollama integration
-- `/web` - local browser UI
-- `install.bat` - setup checks and dependency install
-- `start.bat` - launches local app
-
-## Notes
-- The assistant never asks the learner to go online.
-- Out-of-scope questions are refused and redirected to lessons.
-
----
-
-## AI Agent Studio (Desktop)
-
-A new local-first desktop Studio is available under `agent_studio/`.
-
-### Start Studio
+## One-time install (Windows)
 ```bat
-start_studio.bat
+install.bat
 ```
 
-### Studio highlights
-- Tkinter desktop UI (no Electron, no cloud APIs)
-- Exactly 4 internal agents: Planner, Reviewer, Builder, Runner
-- Ollama local integration via `http://127.0.0.1:11434`
-- Project-scoped artifacts stored under `studio_projects/<project>/`
+## Start AI Agent Studio (desktop)
+```bat
+start.bat
+```
 
-For detailed setup and usage, see `README_STUDIO.md`.
+## Start AI for Seniors (web)
+```bat
+start_seniors.bat
+```
 
----
-
-## Project Separation (School of Thoughts / Seniors / Studio)
-
-Your repository now keeps these as separate entry points:
-
-1. **School of Thoughts (your root `index.html`)**
-   - Start with:
-     ```bat
-     start_school_of_thoughts.bat
-     ```
-
-2. **AI for Seniors module**
-   - Start with:
-     ```bat
-     start_seniors.bat
-     ```
-   - (`start.bat` also remains the Seniors launcher for backward compatibility.)
-
-3. **AI Agent Studio desktop app**
-   - Start with:
-     ```bat
-     start_studio.bat
-     ```
-
-This keeps each experience independent without removing or rewriting existing modules.
-
----
-
-## If something doesn't start (quick fix)
-
-- Always launch from the provided `.bat` files in this folder (they now auto-switch to the repo folder first).
-- Studio:
-  - `start_studio.bat`
-- Seniors:
-  - `start_seniors.bat` (or `start.bat`)
-- School of Thoughts:
-  - `start_school_of_thoughts.bat`
-
-If Studio still fails:
-1. Run `install.bat` once.
-2. Confirm Ollama is running locally.
-3. Retry `start_studio.bat`.
+For Studio details, see `README_STUDIO.md`.
